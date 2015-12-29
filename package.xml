@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>ros_kuka_test</name>
+  <name>vrep_ros_arm_controller</name>
   <version>0.0.0</version>
   <description>The ros_kuka_test package</description>
 
