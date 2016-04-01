@@ -1,14 +1,29 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(vrep_ros_arm_controller)
+project(handeye_calib_camodocal)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  tf_conversions
+  roscpp
+  tf
   trajectory_msgs
-  vrep_common
+  #vrep_common
 )
+find_package(CAMODOCAL REQUIRED HINTS /usr/local/lib/cmake/CAMODOCAL)
+find_package(Threads QUIET)
+find_package(Ceres QUIET) 
+find_package(Glog )
+SET(GFLAGS_LIBRARY ${CMAKE_THREAD_LIBS_INIT})
 
+message("Camodocal found = ${CAMODOCAL_FOUND}")
+message("Camodocal include dir = ${CAMODOCAL_INCLUDE_DIR}")
+message("Camodocal Include Dirs = ${CAMODOCAL_INCLUDE_DIRS}")
+message("Camodocal Def = ${CAMODOCAL_DEFINITIONS}")
+message("Camodocal libs = ${CAMODOCAL_LIBRARIES}")
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -23,7 +38,7 @@ find_package(catkin REQUIRED COMPONENTS
 ################################################
 
 ## To declare and build messages, services or actions from within this
-## package, follow these steps:
+## package, follow these stepadd_definitionss:
 ## * Let MSG_DEP_SET be the set of packages whose message types you use in
 ##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
 ## * In the file package.xml:
@@ -51,7 +66,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate services in the 'srv' folder
 # add_service_files(
-#   FILES
+#   FILESCAMODOCAL
 #   Service1.srv
 #   Service2.srv
 # )
@@ -66,7 +81,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   trajectory_msgs
+#   std_msgs  # Or other packages containing msgs
 # )
 
 ################################################
@@ -100,9 +115,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES ros_kuka_test
-  CATKIN_DEPENDS trajectory_msgs vrep_common
-#  DEPENDS system_lib
+#  LIBRARIES handeye_calib_camodocal
+   CATKIN_DEPENDS eigen roscpp tf trajectory_msgs #vrep_common 
+   DEPENDS CAMODOCAL
 )
 
 ###########
@@ -113,30 +128,31 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS} ${CAMODOCAL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(ros_kuka_test
-#   src/${PROJECT_NAME}/ros_kuka_test.cpp
+# add_library(handeye_calib_camodocal
+#   src/${PROJECT_NAME}/handeye_calib_camodocal.cpp
 # )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(ros_kuka_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(handeye_calib_camodocal ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(ros_kuka_test_node src/ros_kuka_test_node.cpp)
+add_executable(handeye_calib_camodocal src/handeye_calibration.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(ros_kuka_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(handeye_calib_camodocal_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(ros_kuka_test_node
-#   ${catkin_LIBRARIES}
-# )
+message("GLOG = ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}")
+target_link_libraries(handeye_calib_camodocal
+  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${CAMODOCAL_LIBRARIES} agast camodocal_brisk camodocal_calib camodocal_camera_models camodocal_camera_systems camodocal_chessboard camodocal_dbow2 camodocal_dutils camodocal_dutilscv camodocal_dvision camodocal_features2d camodocal_gpl camodocal_location_recognition camodocal_fivepoint camodocal_pose_estimation camodocal_pose_graph camodocal_pugixml camodocal_sparse_graph camodocal_visual_odometry
+)
 
 #############
 ## Install ##
@@ -153,7 +169,7 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS ros_kuka_test ros_kuka_test_node
+# install(TARGETS handeye_calib_camodocal handeye_calib_camodocal_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -178,7 +194,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_ros_kuka_test.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_handeye_calib_camodocal.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
