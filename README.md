@@ -1,6 +1,7 @@
 ROS + CamOdoCal Hand Eye Calibration
 ====================================
 
+Authors: Felix Jonathan (fjonath1@jhu.edu)
 
 This is a ROS node integrating the Hand Eye Calibration implemented in [CamOdoCal](https://github.com/hengli/camodocal). See this [stack exchange question explaining of how Hand Eye Calibration works](http://robotics.stackexchange.com/questions/7163/hand-eye-calibration).
 
