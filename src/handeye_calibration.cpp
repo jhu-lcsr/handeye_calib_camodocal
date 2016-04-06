@@ -57,7 +57,7 @@ void addFrame()
 		ROS_WARN("Fail to EE TF transform between %s to %s", baseTFname.c_str(), EETFname.c_str());
 	}
 
-	if (hasEE and hasEE)
+	if (hasEE and hasCam)
 	{
 		Eigen::Affine3d eigenEE, eigenCam;
 		tf::transformTFToEigen(EETransform, eigenEE);
@@ -82,10 +82,19 @@ void addFrame()
 
 			std::cerr << "EE Relative transform: \n" << robotTipinFirstTipBase.matrix() << std::endl;
 			std::cerr << "Cam Relative transform: \n" << fiducialInFirstFiducialBase.matrix() << std::endl;
+      std::cerr << "EE pos: ("
+        << EETransform.getOrigin().getX() << ", "
+        << EETransform.getOrigin().getY() << ", "
+        << EETransform.getOrigin().getZ() << ")\n";
+      std::cerr << "EE rot: ("
+        << EETransform.getRotation().getAxis().getX() << ", "
+        << EETransform.getRotation().getAxis().getY() << ", "
+        << EETransform.getRotation().getAxis().getZ() << ", "
+        << EETransform.getRotation().getW() << ")\n";
 			Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
 			Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
 			
-			// std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(3,1,0,3).norm() << "vs Cam:" << fiducialInFirstFiducialBase.matrix().block(3,1,0,3).norm()<<std::endl; 
+			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(3,1,0,3).norm() << "vs Cam:" << fiducialInFirstFiducialBase.matrix().block(3,1,0,3).norm()<<std::endl; 
 		}
 		// std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
 		// std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;

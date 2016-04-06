@@ -1,7 +1,7 @@
 <launch>
   <!-- TF names-->
-  <arg name="ARTagTF"           default="/ar_marker_2" />
-  <arg name="cameraTF"          default="/camera_link" />
+  <arg name="ARTagTF"           default="/filtered/ar_marker_0" />
+  <arg name="cameraTF"          default="/camera_rgb_frame" />A
   <arg name="EETF"              default="/iiwa_link_ee" />
   <arg name="baseTF"            default="/base_link" />
 
