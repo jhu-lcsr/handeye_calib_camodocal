@@ -59,9 +59,8 @@ int writeTransformPairsToFile(const  EigenAffineVector& t1, const EigenAffineVec
 
 
 /// @return 0 on success, otherwise error code
-std::pair<EigenAffineVector,EigenAffineVector> readTransformPairsFromFile(std::string filename)
+int readTransformPairsFromFile(std::string filename, EigenAffineVector& t1, EigenAffineVector& t2)
 {
-	EigenAffineVector t1, t2;
 	cv::FileStorage fs(filename, cv::FileStorage::READ);
 	int frameCount;
 
@@ -73,33 +72,35 @@ std::pair<EigenAffineVector,EigenAffineVector> readTransformPairsFromFile(std::s
 	{
 
 		for (int i = 0; i < frameCount; ++i, ++t1_it, ++t2_it){
-			cv::Mat_<double> t1cv = cv::Mat_<double>::ones(4,4);
-			cv::Mat_<double> t2cv = cv::Mat_<double>::ones(4,4);
+			// read in frame one
+			{
+				cv::Mat_<double> t1cv = cv::Mat_<double>::ones(4,4);
+				std::stringstream ss1;
+				ss1 << "T1_" << i;
+				fs[ss1.str()] >> t1cv;
+				Eigen::Affine3d t1e;
+				cv::cv2eigen(t1cv,t1e.matrix());
+				*t1_it = t1e;
+			}
 
-
-			std::stringstream ss1;
-			ss1 << "T1_" << i;
-			fs[ss1.str()] >> t1cv;
-
-			std::stringstream ss2;
-			ss2 << "T2_" << i;
-			fs[ss2.str()] >> t2cv;
-
-			Eigen::Affine3d t1e;
-			Eigen::Affine3d t2e;
-
-			cv::cv2eigen(t2cv,t1e.matrix());
-			cv::cv2eigen(t1cv,t1e.matrix());
-			*t2_it = t2e;
-			*t1_it = t1e;
+			// read in frame two
+			{
+				cv::Mat_<double> t2cv = cv::Mat_<double>::ones(4,4);
+				std::stringstream ss2;
+				ss2 << "T2_" << i;
+				fs[ss2.str()] >> t2cv;
+				Eigen::Affine3d t2e;
+				cv::cv2eigen(t2cv,t2e.matrix());
+				*t2_it = t2e;
+			}
 
 		}
 		fs.release();
 	} else {
 		std::cerr << "failed to open input file " << filename << "\n";
-		return std::pair<EigenAffineVector,EigenAffineVector>();
+		return 1;
 	}
-	return std::pair<EigenAffineVector,EigenAffineVector>(t1,t2);
+	return 0;
 }
 
 Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenAffineVector& camToTag)
@@ -301,7 +302,8 @@ int main (int argc, char** argv)
 {
   ros::init(argc,argv,"handeye_calib_camodocal");    
   ros::NodeHandle nh("~");
-  std::string transformPairsFile;
+  std::string transformPairsRecordFile;
+  std::string transformPairsLoadFile;
   std::string calibratedTransformFile;
   bool loadTransformsFromFile = false;
   //getting TF names
@@ -310,13 +312,24 @@ int main (int argc, char** argv)
   nh.param("EETF", EETFname,std::string("/ee_fixed_link"));
   nh.param("baseTF", baseTFname,std::string("/base_link"));
   nh.param("load_transforms_from_file", loadTransformsFromFile, false);
-  nh.param("transform_pairs_filename", transformPairsFile, std::string("TransformPairs.yml"));
+  nh.param("transform_pairs_record_filename", transformPairsRecordFile, std::string("TransformPairsInput.yml"));
+  nh.param("transform_pairs_load_filename", transformPairsLoadFile, std::string("TransformPairsOutput.yml"));
   nh.param("output_calibrated_transform_filename", calibratedTransformFile,std::string("CalibratedTransform.yml"));
 
-  std::cerr << "Transform pairs file: " << transformPairsFile << "\n";
-  std::cerr << "Calibrated file: " << calibratedTransformFile << "\n";
+  std::cerr << "Calibrated output file: " << calibratedTransformFile << "\n";
 
 
+  if(loadTransformsFromFile){
+	    std::cerr << "Transform pairs loading file: " << transformPairsLoadFile << "\n";
+	  	EigenAffineVector t1,t2;
+	  	readTransformPairsFromFile(transformPairsLoadFile,t1,t2);
+	  	auto result = estimateHandEye(t1,t2,calibratedTransformFile);
+
+	  	return 0;
+  }
+
+  std::cerr << "Transform pairs recording to file: " << transformPairsRecordFile << "\n";
+  
   ros::Rate r(10); // 10 hz
   listener = new(tf::TransformListener);
 
@@ -326,24 +339,17 @@ int main (int argc, char** argv)
   ROS_INFO("Press d to delete last frame transformation.");
   ROS_INFO("Press q to calibrate frame transformation and exit the application.");
 
-  if(loadTransformsFromFile){
-  	auto tfPairs = readTransformPairsFromFile(transformPairsFile);
-  	auto result = estimateHandEye(tfPairs.first,tfPairs.second,calibratedTransformFile);
-
-  	return 0;
-  }
-  
   while (ros::ok())
   {
     key = getch();
     if ((key == 's') || (key == 'S')){
       std::cerr << "Adding Transform #:" << rvecsArm.size() << "\n";
       addFrame();
-      writeTransformPairsToFile(baseToTip,cameraToTag,transformPairsFile);
+      writeTransformPairsToFile(baseToTip,cameraToTag,transformPairsRecordFile);
     }
   	else if ((key == 'd') || (key == 'D'))
   	{
-  		ROS_INFO("Deleted last frame transformation. Number of Current Transformation %u",(unsigned int)rvecsArm.size());
+  		ROS_INFO("Deleted last frame transformation. Number of Current Transformations: %u",(unsigned int)rvecsArm.size());
   		rvecsArm.pop_back();
   		tvecsArm.pop_back();
   		rvecsFiducial.pop_back();
@@ -355,7 +361,7 @@ int main (int argc, char** argv)
 	{
 	  	if (rvecsArm.size() < 5)
 	  	{
-	  		ROS_WARN("Number of calibration data < 5.");
+	  		ROS_WARN("Number of calibration transform pairs < 5.");
 				ROS_INFO("Node Quit");
 	  	}
 	  	ROS_INFO("Calculating Calibration...");
