@@ -1,0 +1,16 @@
+<launch>
+  <!-- TF names-->
+  <arg name="ARTagTF"           default="/ar_marker_2" />
+  <arg name="cameraTF"          default="/camera_link" />
+  <arg name="EETF"              default="/iiwa_link_ee" />
+  <arg name="baseTF"            default="/base_link" />
+
+  <node pkg="handeye_calib_camodocal" type="handeye_calib_camodocal" name="handeye_calib_camodocal" output="screen">  
+  <!-- handeye_calib_camodocal arg pass -->
+    <param name="ARTagTF"       type="str" value="$(arg ARTagTF)" />
+    <param name="cameraTF"      type="str" value="$(arg cameraTF)" />
+    <param name="EETF"          type="str" value="$(arg EETF)" />
+    <param name="baseTF"        type="str" value="$(arg baseTF)" />
+  </node>
+
+</launch>

@@ -73,6 +73,7 @@ void addFrame()
 		{
 			Eigen::Affine3d robotTipinFirstTipBase = firstEEInverse * eigenEE;
 			Eigen::Affine3d fiducialInFirstFiducialBase = firstCamInverse * eigenCam;
+
 			rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipinFirstTipBase.rotation()        ));
 		    tvecsArm.push_back(                                      robotTipinFirstTipBase.translation()     );
 		    
@@ -85,10 +86,10 @@ void addFrame()
 			Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
 			Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
 			
-			// std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(3,1,0,3).norm() << "vs Cam:" << fiducialInFirstFiducialBase.matrix().block(3,1,0,3).norm()<<std::endl; 
+			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(3,1,0,3).norm() << "vs Cam:" << fiducialInFirstFiducialBase.matrix().block(3,1,0,3).norm()<<std::endl; 
 		}
-		// std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
-		// std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;
+		std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
+		std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;
 	}
 	else
 	{
@@ -105,7 +106,8 @@ int main (int argc, char** argv)
   nh.param("cameraTF", cameraTFname,std::string("/camera_2_link"));
   nh.param("EETF", EETFname,std::string("/ee_fixed_link"));
   nh.param("baseTF", baseTFname,std::string("/base_link"));
-  
+  nh.param("TransformFile", baseTFname,std::string("TransformFile.yml"));
+
   ros::Rate r(10); // 10 hz
   listener = new(tf::TransformListener);
 
@@ -118,8 +120,11 @@ int main (int argc, char** argv)
   while (ros::ok())
   {
     key = getch();
-    if ((key == 's') || (key == 'S'))
+    if ((key == 's') || (key == 'S')){
+      std::cerr << "Adding Transform #:" << rvecsArm.size() << "\n";
       addFrame();
+      
+    }
   	else if ((key == 'd') || (key == 'D'))
   	{
   		ROS_INFO("Deleted last frame transformation. Number of Current Transformation %d",rvecsArm.size());
