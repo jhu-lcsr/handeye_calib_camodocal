@@ -87,7 +87,9 @@ The translation is in xyz format, and the rotation is in quaternion format. It i
 
 Here is an example of all 7 numbers from above correctly put into a ros launch file:
 
+```
 <node pkg="tf" type="static_transform_publisher" name="endpoint_to_marker" args=" -0.00746998     0.101617 -0.000671928  0.513209 0.492549 0.513209  -0.48498   $(arg ee_frame) /endpoint_marker 10"/>
+```
 
 
 Authors
