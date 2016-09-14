@@ -21,7 +21,7 @@ We recommend you collect at least ~36 accurate transforms for a good calibration
 converge (i.e. you don't get a good result out). Then you probably have your transforms flipped 
 the wrong way or there is too much noise in your data to find a sufficiently accurate calibration.
 
-### Examples of "too much noise":
+### Examples of "too much noise" when taking data
 
 #### Your cameras must be calibrated
 
