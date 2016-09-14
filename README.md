@@ -21,7 +21,16 @@ We recommend you collect at least ~36 accurate transforms for a good calibration
 converge (i.e. you don't get a good result out). Then you probably have your transforms flipped 
 the wrong way or there is too much noise in your data to find a sufficiently accurate calibration.
 
-One example of "too much noise" is when your cameras aren't calibrated, so camera calibration is  very important! If they aren't calibrated then the poses being fed into the algorithm will be innacurate, won't correspond, and thus the algorithm won't be able to find even a decent approximate solution and will just exit, printing an error.
+### Examples of "too much noise" when taking data
+
+#### Your cameras must be calibrated
+
+Camera calibration is  very important! If they aren't calibrated then the poses being fed into the algorithm will be innacurate, won't correspond, and thus the algorithm won't be able to find even a decent approximate solution and will just exit, printing an error.
+
+#### Your robot and cameras must be rigidly fixed
+
+Hand eye calibration solves for a rigid body transform, so if the whole system isn't rigidly fixed the transform you are solving for is constantly changing and thus impossible to find accurately. For example, if you have a camera and a fixed robot base, check that your robot is securely bolted to a surface. Tighten those bolts up! Also ensure the camera is securely and rigidly fixed in place in a similar fasion. Check for any wobbling and make sure to wait for everything to become still before taking your data points. 
+
 
 Authors
 -------
