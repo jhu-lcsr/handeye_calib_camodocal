@@ -26,11 +26,17 @@ find_package(catkin REQUIRED COMPONENTS
   trajectory_msgs
   #vrep_common
 )
+find_package(Gflags REQUIRED)
+find_package(Glog REQUIRED)
+
+message("Gflags found = ${GFLAGS_FOUND}")
+message("Glog found = ${GLOG_FOUND}")
+SET(Gflags_FOUND ${GFLAGS_FOUND})
+SET(Glog_FOUND ${GLOG_FOUND})
 
 find_package(CAMODOCAL REQUIRED HINTS /usr/local/lib/cmake/CAMODOCAL)
 find_package(Threads QUIET)
 find_package(Ceres QUIET) 
-find_package(Glog )
 SET(GFLAGS_LIBRARY ${CMAKE_THREAD_LIBS_INIT})
 
 message("Camodocal found = ${CAMODOCAL_FOUND}")

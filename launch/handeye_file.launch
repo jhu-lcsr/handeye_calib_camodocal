@@ -1,9 +1,12 @@
 <launch>
   <!-- TF names-->
-  <arg name="ARTagTF"           default="/filtered/ar_marker_0" />
-  <arg name="cameraTF"          default="/camera_rgb_frame" />A
-  <arg name="EETF"              default="/iiwa_link_ee" />
+  <arg name="ARTagTF"           default="/ar_marker_0" />
+  <arg name="cameraTF"          default="/camera_link" />
+  <arg name="EETF"              default="/ee_link" />
   <arg name="baseTF"            default="/base_link" />
+  <arg name="data_folder"       default="$(find handeye_calib_camodocal)/launch" />
+  <arg name="filename"          default="TransformPairsInput.yml" />
+  <arg name="calibrated_filename"          default="CalibratedTransform.yml" />
 
   <node pkg="handeye_calib_camodocal" type="handeye_calib_camodocal" name="handeye_calib_camodocal" output="screen">  
   <!-- handeye_calib_camodocal arg pass -->
@@ -11,6 +14,9 @@
     <param name="cameraTF"      type="str" value="$(arg cameraTF)" />
     <param name="EETF"          type="str" value="$(arg EETF)" />
     <param name="baseTF"        type="str" value="$(arg baseTF)" />
+    <param name="transform_pairs_record_filename" type="str" value="$(arg data_folder)/$(arg filename)" /> 
+    <param name="output_calibrated_transform_filename" type="str" value="$(arg data_folder)/$(arg calibrated_filename)" />
+    <param name="load_transforms_from_file" type="bool" value="true"/>
   </node>
 
 </launch>
