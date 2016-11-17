@@ -152,18 +152,18 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,false);
 	  	std::cerr << "Result: \n" << result << std::endl;
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
-	  	std::cerr << "Translation: " << resultAffine.translation() << std::endl;
+	  	std::cerr << "Translation (x,y,z) : " << resultAffine.translation() << std::endl;
 	  	Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
 	  	std::stringstream ss;
-	  	ss << quaternionResult.w() << ", " << quaternionResult.x() << ", " << quaternionResult.y() << ", " << quaternionResult.x() << std::endl;
-	  	std::cerr << "Rotation: " << ss.str() << std::endl;
+	  	ss << quaternionResult.w() << ", " << quaternionResult.x() << ", " << quaternionResult.y() << ", " << quaternionResult.z() << std::endl;
+	  	std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
 
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffineInv = resultAffine.inverse();
-	  	std::cerr << "Inverted translation: " << resultAffineInv.translation().transpose() << std::endl;
+	  	std::cerr << "Inverted translation (x,y,z) : " << resultAffineInv.translation().transpose() << std::endl;
 	  	quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
 	  	ss.clear();
-	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.x() << std::endl;
-	  	std::cerr << "Inverted rotation: " << ss.str() << std::endl;
+	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
+	  	std::cerr << "Inverted rotation (w,x,y,z): " << ss.str() << std::endl;
 }
 
 
@@ -370,11 +370,11 @@ int main (int argc, char** argv)
 	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,false);
 	  	std::cerr << "Result: \n" << result << std::endl;
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
-	  	std::cerr << "Translation: " << resultAffine.translation().transpose() << std::endl;
+	  	std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
 	  	Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
 	  	std::stringstream ss;
-	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.x() << std::endl;
-	  	std::cerr << "Rotation: " << ss.str() << std::endl;
+	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
+	  	std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
 
 	  	writeCalibration(resultAffine,calibratedTransformFile);
 
@@ -382,8 +382,8 @@ int main (int argc, char** argv)
 	  	std::cerr << "Inverted translation: " << resultAffineInv.translation().transpose() << std::endl;
 	  	quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
 	  	ss.clear();
-	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.x() << std::endl;
-	  	std::cerr << "Inverted rotation: " << ss.str() << std::endl;
+	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
+	  	std::cerr << "Inverted Rotation (w,x,y,z): " << ss.str() << std::endl;
 	  	
 
 	  	break;
