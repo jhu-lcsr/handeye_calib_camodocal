@@ -91,6 +91,10 @@ Here is an example of all 7 numbers from above correctly put into a ros launch f
 <node pkg="tf" type="static_transform_publisher" name="endpoint_to_marker" args=" -0.00746998     0.101617 -0.000671928  0.513209 0.492549 0.513209  -0.48498   $(arg ee_frame) /endpoint_marker 10"/>
 ```
 
+Questions
+---------
+
+If you try running this and have a question please create a [github issue](https://github.com/jhu-lcsr/handeye_calib_camodocal/issues).
 
 Authors
 -------
