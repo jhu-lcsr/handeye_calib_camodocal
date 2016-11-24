@@ -107,12 +107,12 @@ Here is an example of all 7 numbers from above correctly put into a ros launch f
 <node pkg="tf" type="static_transform_publisher" name="endpoint_to_marker" args=" -0.00746998     0.101617 -0.000671928  0.513209 0.492549 0.513209  -0.48498   $(arg ee_frame) /endpoint_marker 10"/>
 ```
 
-Questions
----------
+Questions? Here is what we need to know.
+----------------------------------------
 
-Please create a diagram of your use case so we can 
+If you try running this and have a question please create a diagram of your use case so we can understand how you are setting up the equations, then create a [github issue](https://github.com/jhu-lcsr/handeye_calib_camodocal/issues).
 
-If you try running this and have a question please create a [github issue](https://github.com/jhu-lcsr/handeye_calib_camodocal/issues).
+See this [stack exchange question explaining of how Hand Eye Calibration works](http://robotics.stackexchange.com/questions/7163/hand-eye-calibration) for an example of such a diagram.
 
 Authors
 -------
