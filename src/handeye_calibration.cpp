@@ -368,6 +368,7 @@ int main (int argc, char** argv)
 	  	camodocal::HandEyeCalibration calib;
 	  	Eigen::Matrix4d result;
 	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,false);
+	    	std::cerr << "Quaternion values are output in wxyz order\n";
 	  	std::cerr << "Result: \n" << result << std::endl;
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
 	  	std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
