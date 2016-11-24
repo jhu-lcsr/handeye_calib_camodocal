@@ -369,7 +369,9 @@ int main (int argc, char** argv)
 	  	Eigen::Matrix4d result;
 	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,false);
 	    	std::cerr << "Quaternion values are output in wxyz order\n";
-	  	std::cerr << "Result: \n" << result << std::endl;
+	    
+	  	std::cerr << "Calibration result (" << ARTagTFname << " pose in " << EETFname << " frame): \n"
+	  		<< result << std::endl;
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
 	  	std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
 	  	Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
@@ -380,11 +382,12 @@ int main (int argc, char** argv)
 	  	writeCalibration(resultAffine,calibratedTransformFile);
 
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffineInv = resultAffine.inverse();
-	  	std::cerr << "Inverted translation: " << resultAffineInv.translation().transpose() << std::endl;
+	  	std::cerr << "Inverted Calibration result (" << EETFname << " pose in " << ARTagTFname << " frame): \n";
+	  	std::cerr << "Translation (x,y,z): " << resultAffineInv.translation().transpose() << std::endl;
 	  	quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
 	  	ss.clear();
 	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
-	  	std::cerr << "Inverted Rotation (w,x,y,z): " << ss.str() << std::endl;
+	  	std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
 	  	
 
 	  	break;
