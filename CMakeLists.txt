@@ -171,9 +171,8 @@ add_executable(handeye_calib_camodocal src/handeye_calibration.cpp)
 ## Specify libraries to link a library or executable target against
 message("GLOG = ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}")
 target_link_libraries(handeye_calib_camodocal
-  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${CAMODOCAL_LIBRARIES} agast camodocal_brisk camodocal_calib camodocal_camera_models camodocal_camera_systems camodocal_chessboard camodocal_dbow2 camodocal_dutils camodocal_dutilscv camodocal_dvision camodocal_features2d camodocal_gpl camodocal_location_recognition camodocal_fivepoint camodocal_pose_estimation camodocal_pose_graph camodocal_pugixml camodocal_sparse_graph camodocal_visual_odometry
+  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${CAMODOCAL_LIBRARIES} agast camodocal_brisk camodocal_calib camodocal_chessboard camodocal_dbow2 camodocal_dutils camodocal_dutilscv camodocal_dvision camodocal_location_recognition camodocal_fivepoint camodocal_pose_estimation camodocal_pugixml
 )
-
 #############
 ## Install ##
 #############
