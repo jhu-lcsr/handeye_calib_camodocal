@@ -23,8 +23,24 @@ We recommend you collect at least ~36 accurate transforms for a good calibration
 converge (i.e. you don't get a good result out). Then you probably have your transforms flipped 
 the wrong way or there is too much noise in your data to find a sufficiently accurate calibration.
 
+One simple method to help deal with this problem is to create a new node that reads the data you want
+to read and save a rolling average of the pose. This helps to stabilize the results. There are better
+methods such as a kalman filter that could handle this even better. If you take a rolling average,
+make sure each time you take the data the robot has been set in a single position for the entire duration
+of the time for which the rolling average is being taken, because any error here will throw off the results.
+
 
 ### Examples of "too much noise" when taking data
+
+If there is too much noise you will probably see the following error:
+
+```
+normalization could not be handled. Your rotations and translations are probably either not aligned or not passed in properly
+```
+
+That means there is probably too much variation in the data you are reading to get an accurate solution. 
+For example, if you watch the pose of an AR tag and it wobbles a little or flips this will prevent an 
+accurate solution from being found.
 
 #### Your cameras must be calibrated
 
@@ -93,6 +109,8 @@ Here is an example of all 7 numbers from above correctly put into a ros launch f
 
 Questions
 ---------
+
+Please create a diagram of your use case so we can 
 
 If you try running this and have a question please create a [github issue](https://github.com/jhu-lcsr/handeye_calib_camodocal/issues).
 
