@@ -17,11 +17,17 @@ This will save out a yaml file with the results. Be sure to load the results int
 Troubleshooting
 ---------------
 
+#### Saved Files Not Loading?
+
 If you have trouble finding the saved files, the default working directory of ROS applications is in the `~/.ros/` folder, so try looking there.
+
+#### Collecting Enough Data
 
 We recommend you collect at least ~36 accurate transforms for a good calibration. If it fails to 
 converge (i.e. you don't get a good result out). Then you probably have your transforms flipped 
 the wrong way or there is too much noise in your data to find a sufficiently accurate calibration.
+
+### Eliminating Sensor Noise
 
 One simple method to help deal with this problem is to create a new node that reads the data you want
 to read and save a rolling average of the pose. This helps to stabilize the results. There are better
@@ -49,6 +55,18 @@ Camera calibration is  very important! If they aren't calibrated then the poses 
 #### Your robot and cameras must be rigidly fixed
 
 Hand eye calibration solves for a rigid body transform, so if the whole system isn't rigidly fixed the transform you are solving for is constantly changing and thus impossible to find accurately. For example, if you have a camera and a fixed robot base, check that your robot is securely bolted to a surface. Tighten those bolts up! Also ensure the camera is securely and rigidly fixed in place in a similar fasion. Check for any wobbling and make sure to wait for everything to become still before taking your data points. 
+
+#### Sanity Check by Physically Measuring
+
+Slight distortion or variation in time stamp while the arm moves slightly as you hold it can still throw it off. One additional way to test that is to have the arm go to two distant positions, and the length of the change in checkerboard poses should be equal to the length of the change in end effector tip poses assuming you can keep the orientation constant.
+
+#### Sanity Check via Simulation
+
+If you’re concerned it is a bug in the algorithm you can run it in simulation with v-rep or gazebo (os + v-rep python script is in the repo) to verify it works, since that will avoid all physical measurement problems. From there you could consider taking more real data and incorporating the real data to narrow down the source of the problem. 
+
+#### Sanity Check Transforms and when loading from files
+
+If you're loading from a file you've modified by hand, check if your matrices are transposed, inverted, or in very unusual casses even just the 3x3 Rotation component of the 4x4 rotation matrix may be transposed. 
 
 Example output
 --------------
