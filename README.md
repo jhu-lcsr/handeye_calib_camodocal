@@ -17,11 +17,36 @@ This will save out a yaml file with the results. Be sure to load the results int
 Troubleshooting
 ---------------
 
+#### Saved Files Not Loading?
+
+If you have trouble finding the saved files, the default working directory of ROS applications is in the `~/.ros/` folder, so try looking there.
+
+#### Collecting Enough Data
+
 We recommend you collect at least ~36 accurate transforms for a good calibration. If it fails to 
 converge (i.e. you don't get a good result out). Then you probably have your transforms flipped 
 the wrong way or there is too much noise in your data to find a sufficiently accurate calibration.
 
+### Eliminating Sensor Noise
+
+One simple method to help deal with this problem is to create a new node that reads the data you want
+to read and save a rolling average of the pose. This helps to stabilize the results. There are better
+methods such as a kalman filter that could handle this even better. If you take a rolling average,
+make sure each time you take the data the robot has been set in a single position for the entire duration
+of the time for which the rolling average is being taken, because any error here will throw off the results.
+
+
 ### Examples of "too much noise" when taking data
+
+If there is too much noise you will probably see the following error:
+
+```
+normalization could not be handled. Your rotations and translations are probably either not aligned or not passed in properly
+```
+
+That means there is probably too much variation in the data you are reading to get an accurate solution. 
+For example, if you watch the pose of an AR tag and it wobbles a little or flips this will prevent an 
+accurate solution from being found.
 
 #### Your cameras must be calibrated
 
@@ -31,6 +56,81 @@ Camera calibration is  very important! If they aren't calibrated then the poses 
 
 Hand eye calibration solves for a rigid body transform, so if the whole system isn't rigidly fixed the transform you are solving for is constantly changing and thus impossible to find accurately. For example, if you have a camera and a fixed robot base, check that your robot is securely bolted to a surface. Tighten those bolts up! Also ensure the camera is securely and rigidly fixed in place in a similar fasion. Check for any wobbling and make sure to wait for everything to become still before taking your data points. 
 
+#### Sanity Check by Physically Measuring
+
+Slight distortion or variation in time stamp while the arm moves slightly as you hold it can still throw it off. One additional way to test that is to have the arm go to two distant positions, and the length of the change in checkerboard poses should be equal to the length of the change in end effector tip poses assuming you can keep the orientation constant.
+
+#### Sanity Check via Simulation
+
+If you’re concerned it is a bug in the algorithm you can run it in simulation with v-rep or gazebo (os + v-rep python script is in the repo) to verify it works, since that will avoid all physical measurement problems. From there you could consider taking more real data and incorporating the real data to narrow down the source of the problem. 
+
+#### Sanity Check Transforms and when loading from files
+
+If you're loading from a file you've modified by hand, check if your matrices are transposed, inverted, or in very unusual casses even just the 3x3 Rotation component of the 4x4 rotation matrix may be transposed. 
+
+Example output
+--------------
+
+Here is an example output of what you should expect when a run is executed successfully:
+
+```
+Writing pairs to "/home/cpaxton/catkin_ws/src/handeye_calib_camodocal/launch/TransformPairsInput.yml"...
+q[ INFO] [1473813682.393291696]: Calculating Calibration...
+# INFO: Before refinement: H_12 = 
+-0.00160534     0.99916   0.0409473 -0.00813108
+-0.00487176  -0.0409546    0.999149     0.10692
+  0.999987  0.00140449  0.00493341   0.0155885
+         0           0           0           1
+Ceres Solver Report: Iterations: 99, Initial cost: 1.882582e-05, Final cost: 1.607494e-05, Termination: CONVERGENCE
+# INFO: After refinement: H_12 = 
+-0.00282176     0.999009    0.0444162  -0.00746998
+  0.0121142   -0.0443789     0.998941     0.101617
+   0.999923   0.00335684    -0.011977 -0.000671928
+          0            0            0            1
+Result: 
+-0.00282176     0.999009    0.0444162  -0.00746998
+  0.0121142   -0.0443789     0.998941     0.101617
+   0.999923   0.00335684    -0.011977 -0.000671928
+          0            0            0            1
+Translation:  -0.00746998     0.101617 -0.000671928
+Rotation: -0.48498 0.513209 0.492549 0.513209
+```
+
+Note that this run is not a perfect one with errors of 5 mm over a motion of 1 m.
+
+#### Cost
+
+One key piece of information is the output of the cost function, which is a metric representing an estimate of solution accuracy:
+
+```
+Initial cost: 1.882582e-05, Final cost: 1.607494e-05
+```
+
+With a really good run where the calibration is dead on the final cost should be on the order of 1e-13 or 1e-14.
+
+#### Results
+
+Now lets take a look at the results:
+
+```
+Translation:  -0.00746998     0.101617 -0.000671928
+Rotation: -0.48498 0.513209 0.492549 0.513209
+```
+
+The translation is in xyz format, and the rotation is in quaternion format. It is important to note that this tool and camodocal use the eigen Quaternion format which orders the four values stored in a quaternion wxyz. ROS launch files, by comparison store the data in the order xyzw. That means when copying the results into ROS you must move the first entry of the rotation to the end.
+
+Here is an example of all 7 numbers from above correctly put into a ros launch file:
+
+```
+<node pkg="tf" type="static_transform_publisher" name="endpoint_to_marker" args=" -0.00746998     0.101617 -0.000671928  0.513209 0.492549 0.513209  -0.48498   $(arg ee_frame) /endpoint_marker 10"/>
+```
+
+Questions? Here is what we need to know.
+----------------------------------------
+
+If you try running this and have a question please create a diagram of your use case so we can understand how you are setting up the equations, then create a [github issue](https://github.com/jhu-lcsr/handeye_calib_camodocal/issues).
+
+See this [stack exchange question explaining of how Hand Eye Calibration works](http://robotics.stackexchange.com/questions/7163/hand-eye-calibration) for an example of such a diagram.
 
 Authors
 -------

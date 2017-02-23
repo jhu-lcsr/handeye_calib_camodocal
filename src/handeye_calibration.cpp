@@ -152,7 +152,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 			Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
 			Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
 			
-			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << "vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl; 
+			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl; 
 		}
 		std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
 		std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;
@@ -287,7 +287,7 @@ void addFrame()
 			Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
 			Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
 			
-			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(3,1,0,3).norm() << "vs Cam:" << fiducialInFirstFiducialBase.matrix().block(3,1,0,3).norm()<<std::endl; 
+			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl; 
 		}
 		std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
 		std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;
@@ -368,7 +368,11 @@ int main (int argc, char** argv)
 	  	camodocal::HandEyeCalibration calib;
 	  	Eigen::Matrix4d result;
 	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,false);
-	  	std::cerr << "Result from " << EETFname << " to " << ARTagTFname <<":\n" << result << std::endl;
+
+	    	std::cerr << "Quaternion values are output in wxyz order\n";
+	    
+	  	std::cerr << "Calibration result (" << ARTagTFname << " pose in " << EETFname << " frame): \n"
+	  		<< result << std::endl;
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
 	  	std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
 	  	Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
@@ -379,12 +383,12 @@ int main (int argc, char** argv)
 	  	writeCalibration(resultAffine,calibratedTransformFile);
 
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffineInv = resultAffine.inverse();
-	  	std::cerr << "Result from " << ARTagTFname << " to " << EETFname <<":\n" << result << std::endl;
-	  	std::cerr << "Inverted translation: " << resultAffineInv.translation().transpose() << std::endl;
+	  	std::cerr << "Inverted Calibration result (" << EETFname << " pose in " << ARTagTFname << " frame): \n";
+	  	std::cerr << "Translation (x,y,z): " << resultAffineInv.translation().transpose() << std::endl;
 	  	quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
 	  	ss.clear();
 	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
-	  	std::cerr << "Inverted Rotation (w,x,y,z): " << ss.str() << std::endl;
+	  	std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
 	  	
 
 	  	break;
