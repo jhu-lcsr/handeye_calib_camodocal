@@ -1,7 +1,7 @@
 ROS + CamOdoCal Hand Eye Calibration
 ====================================
 
-This is a ROS node integrating the Hand Eye Calibration implemented in [CamOdoCal](https://github.com/hengli/camodocal). See this [stack exchange question explaining of how Hand Eye Calibration works](http://robotics.stackexchange.com/questions/7163/hand-eye-calibration).
+This is a ROS node integrating the Hand Eye Calibration implemented in [CamOdoCal](https://github.com/hengli/camodocal). See this [stack exchange question explaining how Hand Eye Calibration works](http://robotics.stackexchange.com/questions/7163/hand-eye-calibration).
 
 Example uses include determining exact transforms with both positions and orientations of a:
 
@@ -12,7 +12,102 @@ Example uses include determining exact transforms with both positions and orient
 
 When using this with a robot arm, move it around to a variety of poses and orientations, make sure any data sources that lag behind settle down, then record each pair of poses between the robot base and the robot tip, and between the eye/camera base and the marker, fiducial, or AR tag it is viewing.
 
-This will save out a yaml file with the results. Be sure to load the results into your system using the data formatted as a rotation matrix, dual quaternion, or quaternion + translation. Roll Pitch Yaw can degenerate and will often be innacurate! 
+This will save out a yaml file with the results. Be sure to load the results into your system using the data formatted as a rotation matrix, dual quaternion, or quaternion + translation. Roll Pitch Yaw can degenerate and will often be innacurate!
+
+Installation
+------------
+
+### Linux
+All dependencies can be installed via scripts in the [robotics_setup](https://github.com/ahundt/robotics_setup) repository on `Ubuntu 14.04` or `Ubuntu 16.04`. 
+
+### MacOS
+
+On OS X you can use [homebrew](http://brew.sh) and the [homebrew-robotics](https://github.com/ahundt/homebrew-robotics) tap to install all dependencies. 
+
+### ROS (both Linux + MacOS)
+
+Once you've completed the Linux or MacOS steps, follow normal ros source package installation procedures with catkin build.
+
+### Dependencies
+
+If installing manually, be sure to follow the instructions for each library as there are specific steps required depending on your OS.
+
+- [ROS indigo or kinetic](ros.org)
+- [OpenCV 2 or 3](opencv.org) with (recommended) nonfree components
+    - Note handeye_calib_camodocal does not call any nonfree components, but some users have had difficulty configuring CMake to compile and install all the other dependencies without them.
+    - OpenCV3 puts their nonfree components in [opencv-contrib](https://github.com/opencv/opencv_contrib).
+- [CamOdoCal](https://github.com/hengli/camodocal)
+- [Eigen3](eigen.tuxfamily.org)
+- [ceres-solver](ceres-solver.org)
+
+Examples
+--------
+
+There are example pre-recorded transforms in the `example` folder, all config files are expected to be in your  `~/.ros/` folder by default. 
+
+- [example/TransformPairsInput.yml](example/TransformPairsInput.yml)
+    - This contains the set of transforms you record with the launch script, which are input into the solver.
+- [example/CalibratedTransform.yml](example/CalibratedTransform.yml)
+    - This transform is your final results found by the solver.
+
+Copy the above files into  `~/.ros/` and run:
+
+    roslaunch handeye_calib_camodocal handeye_file.launch
+
+You should see output like the following:
+
+```
+# INFO: Before refinement: H_12 = 
+  -0.962926   -0.156063     0.22004 -0.00802514
+  -0.176531    0.981315  -0.0765322   0.0242905
+  -0.203985   -0.112539   -0.972484   0.0550756
+          0           0           0           1
+Ceres Solver Report: Iterations: 89, Initial cost: 1.367791e+01, Final cost: 6.005694e-04, Termination: CONVERGENCE
+# INFO: After refinement: H_12 = 
+  -0.980558    0.184959   0.0655414  0.00771561
+  0.0495028  -0.0900424    0.994707   0.0836796
+   0.189881    0.978613   0.0791359 -0.00867321
+          0           0           0           1
+Result from /ee_link to /ar_marker_0:
+  -0.980558    0.184959   0.0655414  0.00771561
+  0.0495028  -0.0900424    0.994707   0.0836796
+   0.189881    0.978613   0.0791359 -0.00867321
+          0           0           0           1
+Translation (x,y,z) :  0.00771561   0.0836796 -0.00867321
+Rotation (w,x,y,z): -0.046193, 0.0871038, 0.672938, 0.733099
+
+Result from /ar_marker_0 to /ee_link:
+  -0.980558    0.184959   0.0655414  0.00771561
+  0.0495028  -0.0900424    0.994707   0.0836796
+   0.189881    0.978613   0.0791359 -0.00867321
+          0           0           0           1
+Inverted translation (x,y,z) : 0.00507012 0.0145954 -0.083056
+Inverted rotation (w,x,y,z): -0.046193, 0.0871038, 0.672938, 0.733099
+0.046193 0.0871038 0.672938 0.733099
+
+Writing calibration to "/home/cpaxton/catkin_ws/src/handeye_calib_camodocal/launch/CalibratedTransform.yml"...
+[handeye_calib_camodocal-1] process has finished cleanly
+log file: /home/cpaxton/.ros/log/a829db0a-f96b-11e6-b1dd-fc4dd43dd90b/handeye_calib_camodocal-1*.log
+all processes on machine have died, roslaunch will exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+done
+```
+
+The full terminal session can be found at:
+
+ - [example/terminal_session.txt](example/terminal_session.txt)
+ 
+Recording your own Transforms
+-----------------------------
+
+To record your own session, modify [launch/handeye_file.launch](launch/handeye_file.launch) to specify the ROS topics that will publish the poses between which you wish to calibrate, then run:
+
+
+    roslaunch handeye_calib_camodocal handeye_file.launch
+ 
+If you have difficulty we cover just about every problem we've seen below in the troubleshooting section. It can also help to see this [stack exchange question explaining how Hand Eye Calibration works](http://robotics.stackexchange.com/questions/7163/hand-eye-calibration)
+ 
 
 Troubleshooting
 ---------------
@@ -40,7 +135,7 @@ normalization could not be handled. Your rotations and translations are probably
 
 That means there is probably too much variation in the data you are reading to get an accurate solution. 
 For example, if you watch the pose of an AR tag and it wobbles a little or flips this will prevent an 
-accurate solution from being found.
+accurate solution from being found. One way to help this is to ensure the system is completely stationary and then interpolate (average) the poses across several frames, again ensuring the system is completely stationary before recording the frame and then finally moving to the next position and repeating the process.
 
 #### Your cameras must be calibrated
 
