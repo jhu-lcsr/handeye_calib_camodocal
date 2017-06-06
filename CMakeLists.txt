@@ -35,11 +35,68 @@ SET(Gflags_FOUND ${GFLAGS_FOUND})
 SET(Glog_FOUND ${GLOG_FOUND})
 
 find_package(Threads QUIET)
-find_package(Ceres QUIET)
+find_package(Ceres QUIET REQUIRED)
 SET(GFLAGS_LIBRARY ${CMAKE_THREAD_LIBS_INIT})
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
+find_package(OpenCV REQUIRED)
+
+if(OpenCV_FOUND)
+	message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+    if(NOT OpenCV_VERSION VERSION_LESS "3.0.0")
+        add_definitions(-DHAVE_OPENCV3)
+		message(STATUS "defined HAVE_OPENCV3")
+
+        set(CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES} ${OPENCV_INCLUDE_DIRS})
+        include(CheckIncludeFileCXX)
+
+        check_include_file_cxx(opencv2/face/facerec.hpp HAVE_OPENCV_CONTRIB)
+        if(HAVE_OPENCV_CONTRIB)
+            add_definitions(-DHAVE_OPENCV_CONTRIB)
+        elseif()
+            message(STATUS "OPENCV_CONTRIB NOT PRESENT, DISABLING LOTS OF FUNCTIONALITY, SEE https://github.com/opencv/opencv_contrib")
+        endif()
+
+        check_include_file_cxx(opencv2/xfeatures2d/nonfree.hpp HAVE_OPENCV_XFEATURES2D_NONFREE)
+        if(HAVE_OPENCV_XFEATURES2D_NONFREE)
+            add_definitions(-DHAVE_OPENCV_XFEATURES2D_NONFREE)
+        elseif()
+            message(STATUS "OPENCV_XFEATURES2D_NONFREE NOT PRESENT, DISABLING LOTS OF FUNCTIONALITY, SEE https://github.com/opencv/opencv_contrib")
+        endif()
+
+        check_include_file_cxx(opencv2/cudafeatures2d.hpp HAVE_OPENCV_CUDAFEATURES2D)
+        if(HAVE_OPENCV_CUDAFEATURES2D)
+            add_definitions(-DHAVE_OPENCV_CUDAFEATURES2D)
+        elseif()
+            message(STATUS "OPENCV_CUDAFEATURES2D NOT PRESENT, DISABLING LOTS OF FUNCTIONALITY")
+        endif()
+
+    else()
+        add_definitions(-DHAVE_OPENCV2)
+    endif()
+endif()
+
+# enable GPU enhanced SURF features
+# if BOTH CUDA and the OPENCV contrib cuda features are available
+if(CUDA_FOUND AND HAVE_OPENCV_CUDAFEATURES2D)
+    add_definitions(-DHAVE_CUDA)
+    message(STATUS "defined HAVE_CUDA")
+
+    set(CUDA_CUDART_LIBRARY_OPTIONAL ${CUDA_CUDART_LIBRARY})
+endif()
+
+# OSX RPATH
+if(APPLE)
+   set(CMAKE_MACOSX_RPATH ON)
+endif()
+
+if(NOT CERES_FOUND OR USE_INTERNAL_CERES)
+    message(STATUS "Using internal version of ceres-solver")
+    # we will be using the ceres version included with camodocal
+    set(CERES_LIBRARIES ceres)
+    set(CERES_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/../src/ceres-solver/include)
+endif()
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -165,7 +222,7 @@ add_executable(handeye_calib_camodocal
 ## Specify libraries to link a library or executable target against
 message("GLOG = ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}")
 target_link_libraries(handeye_calib_camodocal
-  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}
+  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${OPENCV_LIBS}
 )
 #############
 ## Install ##
