@@ -222,7 +222,7 @@ add_executable(handeye_calib_camodocal
 ## Specify libraries to link a library or executable target against
 message("GLOG = ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}")
 target_link_libraries(handeye_calib_camodocal
-  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${OPENCV_LIBS}
+  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${OPENCV_LIBS} ${CERES_LIBRARIES}
 )
 #############
 ## Install ##
