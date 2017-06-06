@@ -34,19 +34,62 @@ message("Glog found = ${GLOG_FOUND}")
 SET(Gflags_FOUND ${GFLAGS_FOUND})
 SET(Glog_FOUND ${GLOG_FOUND})
 
-find_package(CAMODOCAL REQUIRED HINTS /usr/local/lib/cmake/CAMODOCAL)
 find_package(Threads QUIET)
-find_package(Ceres QUIET) 
+find_package(Ceres QUIET REQUIRED)
 SET(GFLAGS_LIBRARY ${CMAKE_THREAD_LIBS_INIT})
-
-message("Camodocal found = ${CAMODOCAL_FOUND}")
-message("Camodocal include dir = ${CAMODOCAL_INCLUDE_DIR}")
-message("Camodocal Include Dirs = ${CAMODOCAL_INCLUDE_DIRS}")
-message("Camodocal Def = ${CAMODOCAL_DEFINITIONS}")
-message("Camodocal libs = ${CAMODOCAL_LIBRARIES}")
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
+find_package(OpenCV REQUIRED)
+
+if(OpenCV_FOUND)
+	message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+    if(NOT OpenCV_VERSION VERSION_LESS "3.0.0")
+        add_definitions(-DHAVE_OPENCV3)
+		message(STATUS "defined HAVE_OPENCV3")
+
+        set(CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES} ${OPENCV_INCLUDE_DIRS})
+        include(CheckIncludeFileCXX)
+
+        check_include_file_cxx(opencv2/face/facerec.hpp HAVE_OPENCV_CONTRIB)
+        if(HAVE_OPENCV_CONTRIB)
+            add_definitions(-DHAVE_OPENCV_CONTRIB)
+        elseif()
+            message(STATUS "OPENCV_CONTRIB NOT PRESENT, DISABLING LOTS OF FUNCTIONALITY, SEE https://github.com/opencv/opencv_contrib")
+        endif()
+
+        check_include_file_cxx(opencv2/xfeatures2d/nonfree.hpp HAVE_OPENCV_XFEATURES2D_NONFREE)
+        if(HAVE_OPENCV_XFEATURES2D_NONFREE)
+            add_definitions(-DHAVE_OPENCV_XFEATURES2D_NONFREE)
+        elseif()
+            message(STATUS "OPENCV_XFEATURES2D_NONFREE NOT PRESENT, DISABLING LOTS OF FUNCTIONALITY, SEE https://github.com/opencv/opencv_contrib")
+        endif()
+
+        check_include_file_cxx(opencv2/cudafeatures2d.hpp HAVE_OPENCV_CUDAFEATURES2D)
+        if(HAVE_OPENCV_CUDAFEATURES2D)
+            add_definitions(-DHAVE_OPENCV_CUDAFEATURES2D)
+        elseif()
+            message(STATUS "OPENCV_CUDAFEATURES2D NOT PRESENT, DISABLING LOTS OF FUNCTIONALITY")
+        endif()
+
+    else()
+        add_definitions(-DHAVE_OPENCV2)
+    endif()
+endif()
+
+# enable GPU enhanced SURF features
+# if BOTH CUDA and the OPENCV contrib cuda features are available
+if(CUDA_FOUND AND HAVE_OPENCV_CUDAFEATURES2D)
+    add_definitions(-DHAVE_CUDA)
+    message(STATUS "defined HAVE_CUDA")
+
+    set(CUDA_CUDART_LIBRARY_OPTIONAL ${CUDA_CUDART_LIBRARY})
+endif()
+
+# OSX RPATH
+if(APPLE)
+   set(CMAKE_MACOSX_RPATH ON)
+endif()
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -136,8 +179,7 @@ message("Camodocal libs = ${CAMODOCAL_LIBRARIES}")
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES handeye_calib_camodocal
-   CATKIN_DEPENDS eigen roscpp tf trajectory_msgs #vrep_common 
-   DEPENDS CAMODOCAL
+   CATKIN_DEPENDS eigen roscpp tf trajectory_msgs #vrep_common
 )
 
 ###########
@@ -148,7 +190,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS} ${CAMODOCAL_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS} ./src
 )
 
 ## Declare a C++ library
@@ -162,7 +204,9 @@ include_directories(
 # add_dependencies(handeye_calib_camodocal ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(handeye_calib_camodocal src/handeye_calibration.cpp)
+add_executable(handeye_calib_camodocal
+  src/handeye_calibration.cpp
+  src/camodocal/calib/HandEyeCalibration.cc)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -171,7 +215,7 @@ add_executable(handeye_calib_camodocal src/handeye_calibration.cpp)
 ## Specify libraries to link a library or executable target against
 message("GLOG = ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}")
 target_link_libraries(handeye_calib_camodocal
-  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${CAMODOCAL_LIBRARIES} agast camodocal_brisk camodocal_calib camodocal_chessboard camodocal_dbow2 camodocal_dutils camodocal_dutilscv camodocal_dvision camodocal_location_recognition camodocal_fivepoint camodocal_pose_estimation camodocal_pugixml
+  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}
 )
 #############
 ## Install ##
