@@ -45,7 +45,7 @@ Examples
 
 There are example pre-recorded transforms in the `example` folder, all config files are expected to be in your  `~/.ros/` folder by default. 
 
-- [example/TransformPairsInput.yml](example/TransformPairsInput.yml)
+- [example/TransformPairsOutput.yml](example/TransformPairsOutput.yml)
     - This contains the set of transforms you record with the launch script, which are input into the solver.
 - [example/CalibratedTransform.yml](example/CalibratedTransform.yml)
     - This transform is your final results found by the solver.
