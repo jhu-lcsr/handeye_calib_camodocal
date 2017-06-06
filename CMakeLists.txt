@@ -91,13 +91,6 @@ if(APPLE)
    set(CMAKE_MACOSX_RPATH ON)
 endif()
 
-if(NOT CERES_FOUND OR USE_INTERNAL_CERES)
-    message(STATUS "Using internal version of ceres-solver")
-    # we will be using the ceres version included with camodocal
-    set(CERES_LIBRARIES ceres)
-    set(CERES_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/../src/ceres-solver/include)
-endif()
-
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -222,7 +215,7 @@ add_executable(handeye_calib_camodocal
 ## Specify libraries to link a library or executable target against
 message("GLOG = ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}")
 target_link_libraries(handeye_calib_camodocal
-  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${OPENCV_LIBS} ${CERES_LIBRARIES}
+  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}
 )
 #############
 ## Install ##
