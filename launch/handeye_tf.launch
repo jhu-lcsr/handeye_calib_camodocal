@@ -1,22 +1,48 @@
 <launch>
   <!-- TF names-->
+
+  <!-- AR Tag TF frame, the ros topic for the tf frame seen by the camera sensor,
+       this need not be an actual AR tag, for example, it could be an optical tracker
+       marker, or a position on the gripper you detect directly -->
   <arg name="ARTagTF"           default="/ar_marker_0" />
+
+  <!-- Camera Transform, the ros topic for the tf frame of your camera sensor -->
   <arg name="cameraTF"          default="/camera_link" />
+
+  <!-- End Effector Transform, the ros topic for the tf frame
+       at the tip of your robot's gripper or other tool -->
   <arg name="EETF"              default="/ee_link" />
+
+  <!-- Robot Base Transform, the ros topic for the base tf frame of your robot -->
   <arg name="baseTF"            default="/base_link" />
+
+  <!-- The data folder where solver data should be saved and loaded from.
+       Defaults to the handeye_calib_camodocal/launch folder of this repository. -->
   <arg name="data_folder"       default="$(find handeye_calib_camodocal)/launch" />
+
+  <!-- When you record transforms from a live running robot to a file,
+       and when you load that file from disk this is the filename that will be loaded.
+
+       After it is saved be sure to back this file up if you don't want it to be
+       overwritten by accident!
+  -->
   <arg name="filename"          default="TransformPairsInput.yml" />
+
+  <!-- The actual transform result you are solving for is saved with this filename -->
   <arg name="calibrated_filename"          default="CalibratedTransform.yml" />
 
-  <node pkg="handeye_calib_camodocal" type="handeye_calib_camodocal" name="handeye_calib_camodocal" output="screen">  
+  <node pkg="handeye_calib_camodocal" type="handeye_calib_camodocal" name="handeye_calib_camodocal" output="screen">
   <!-- handeye_calib_camodocal arg pass -->
     <param name="ARTagTF"       type="str" value="$(arg ARTagTF)" />
     <param name="cameraTF"      type="str" value="$(arg cameraTF)" />
     <param name="EETF"          type="str" value="$(arg EETF)" />
     <param name="baseTF"        type="str" value="$(arg baseTF)" />
     <param name="load_transforms_from_file" type="bool" value="false"/>
+    <!-- When you record transforms from a live running robot to a file, this is where the file is saved -->
     <param name="transform_pairs_record_filename" type="str" value="$(arg data_folder)/$(arg filename)" />
+    <!-- When you load transforms you saved to a file earlier, this is where the file is saved -->
     <!-- <param name="transform_pairs_load_filename"  type="str" value="$(arg data_folder)/$(arg filename)" /> -->
+    <!-- The actual transform result you are solving for is saved in this file -->
     <param name="output_calibrated_transform_filename" type="str" value="$(arg data_folder)/$(arg calibrated_filename)" />
   </node>
 
