@@ -6,13 +6,13 @@ This is a ROS node integrating the Hand Eye Calibration implemented in [CamOdoCa
 Example uses include determining exact transforms with both positions and orientations of a:
 
  - camera attached to the floor is relative to a robot arm
- - camera attached to a robot arm tip is relative to a robot arm
+ - camera attached to a robot arm tip relative to a robot arm
  - set of cameras attached to a moving vehicle (this is what camodocal itself implements)
  - two robot arms bolted together
 
 When using this with a robot arm, move it around to a variety of poses and orientations, make sure any data sources that lag behind settle down, then record each pair of poses between the robot base and the robot tip, and between the eye/camera base and the marker, fiducial, or AR tag it is viewing.
 
-This will save out a yaml file with the results. Be sure to load the results into your system using the data formatted as a rotation matrix, dual quaternion, or quaternion + translation. Roll Pitch Yaw can degenerate and will often be innacurate!
+This will save out a yaml file with the results. Be sure to load the results into your system using the data formatted as a rotation matrix, dual quaternion, or quaternion + translation. Roll Pitch Yaw can degenerate and will often be inaccurate!
 
 Installation
 ------------
