@@ -18,11 +18,11 @@ Installation
 ------------
 
 ### Linux
-All dependencies can be installed via scripts in the [robotics_setup](https://github.com/ahundt/robotics_setup) repository on `Ubuntu 14.04` or `Ubuntu 16.04`. 
+All dependencies can be installed via scripts in the [robotics_setup](https://github.com/ahundt/robotics_setup) repository on `Ubuntu 14.04` or `Ubuntu 16.04`.
 
 ### MacOS
 
-On OS X you can use [homebrew](http://brew.sh) and the [homebrew-robotics](https://github.com/ahundt/homebrew-robotics) tap to install all dependencies. 
+On OS X you can use [homebrew](http://brew.sh) and the [homebrew-robotics](https://github.com/ahundt/homebrew-robotics) tap to install all dependencies.
 
 ### ROS (both Linux + MacOS)
 
@@ -36,34 +36,37 @@ If installing manually, be sure to follow the instructions for each library as t
 - [OpenCV 2 or 3](opencv.org) with (recommended) nonfree components
     - Note handeye_calib_camodocal does not call any nonfree components, but some users have had difficulty configuring CMake to compile and install all the other dependencies without them.
     - OpenCV3 puts their nonfree components in [opencv-contrib](https://github.com/opencv/opencv_contrib).
-- [CamOdoCal](https://github.com/hengli/camodocal)
 - [Eigen3](eigen.tuxfamily.org)
 - [ceres-solver](ceres-solver.org)
+- [glog](https://github.com/google/glog)
+- [gflags](https://github.com/gflags/gflags)
 
 Examples
 --------
 
-There are example pre-recorded transforms in the `example` folder, all config files are expected to be in your  `~/.ros/` folder by default. 
+There are example pre-recorded transforms in the `example` folder, all config files are expected to be in `handeye_calib_camodocal/launch` folder by default, but if that doesn't work try checking the `~/.ros/` folder.
 
+- [launch/handeye_example.launch](launch/handeye_example.launch)
+    - This configures the files transforms are loaded from and saved to, as well as rostopics if reading live data.
 - [example/TransformPairsOutput.yml](example/TransformPairsOutput.yml)
     - This contains the set of transforms you record with the launch script, which are input into the solver.
 - [example/CalibratedTransform.yml](example/CalibratedTransform.yml)
     - This transform is your final results found by the solver.
 
-Copy the above files into  `~/.ros/` and run:
+To verify that the software is working run:
 
-    roslaunch handeye_calib_camodocal handeye_file.launch
+    roslaunch handeye_calib_camodocal handeye_example.launch
 
 You should see output like the following:
 
 ```
-# INFO: Before refinement: H_12 = 
+# INFO: Before refinement: H_12 =
   -0.962926   -0.156063     0.22004 -0.00802514
   -0.176531    0.981315  -0.0765322   0.0242905
   -0.203985   -0.112539   -0.972484   0.0550756
           0           0           0           1
 Ceres Solver Report: Iterations: 89, Initial cost: 1.367791e+01, Final cost: 6.005694e-04, Termination: CONVERGENCE
-# INFO: After refinement: H_12 = 
+# INFO: After refinement: H_12 =
   -0.980558    0.184959   0.0655414  0.00771561
   0.0495028  -0.0900424    0.994707   0.0836796
    0.189881    0.978613   0.0791359 -0.00867321
@@ -97,7 +100,7 @@ done
 The full terminal session can be found at:
 
  - [example/terminal_session.txt](example/terminal_session.txt)
- 
+
 Recording your own Transforms
 -----------------------------
 
@@ -105,21 +108,26 @@ To record your own session, modify [launch/handeye_file.launch](launch/handeye_f
 
 
     roslaunch handeye_calib_camodocal handeye_file.launch
- 
+
 If you have difficulty we cover just about every problem we've seen below in the troubleshooting section. It can also help to see this [stack exchange question explaining how Hand Eye Calibration works](http://robotics.stackexchange.com/questions/7163/hand-eye-calibration)
- 
+
+After you run, be sure to back up `TransformPairsInput.yml` and `CalibratedTransform.yml` so you don't lose all
+the transforms and positions you saved!
+
 
 Troubleshooting
 ---------------
 
 #### Saved Files Not Loading?
 
-If you have trouble finding the saved files, the default working directory of ROS applications is in the `~/.ros/` folder, so try looking there.
+If you have trouble finding the saved files, the default working directory of ROS applications is in the `~/.ros/` folder, so try looking there. Be sure to also check your launch file which is typically
+[launch/handeye_file.launch](launch/handeye_file.launch) this determines if transforms will be loaded
+from a running robot or saved files, as well as where save files are placed.
 
 #### Collecting Enough Data
 
-We recommend you collect at least ~36 accurate transforms for a good calibration. If it fails to 
-converge (i.e. you don't get a good result out). Then you probably have your transforms flipped 
+We recommend you collect at least ~36 accurate transforms for a good calibration. If it fails to
+converge (i.e. you don't get a good result out). Then you probably have your transforms flipped
 the wrong way or there is too much noise in your data to find a sufficiently accurate calibration.
 
 ### Eliminating Sensor Noise
@@ -139,17 +147,17 @@ If there is too much noise you will probably see the following error:
 normalization could not be handled. Your rotations and translations are probably either not aligned or not passed in properly
 ```
 
-That means there is probably too much variation in the data you are reading to get an accurate solution. 
-For example, if you watch the pose of an AR tag and it wobbles a little or flips this will prevent an 
+That means there is probably too much variation in the data you are reading to get an accurate solution.
+For example, if you watch the pose of an AR tag and it wobbles a little or flips this will prevent an
 accurate solution from being found. One way to help this is to ensure the system is completely stationary and then interpolate (average) the poses across several frames, again ensuring the system is completely stationary before recording the frame and then finally moving to the next position and repeating the process.
 
 #### Your cameras must be calibrated
 
-Camera calibration is  very important! If they aren't calibrated then the poses being fed into the algorithm will be innacurate, won't correspond, and thus the algorithm won't be able to find even a decent approximate solution and will just exit, printing an error.
+Camera calibration is  very important! If they aren't calibrated then the poses being fed into the algorithm will be inaccurate, won't correspond, and thus the algorithm won't be able to find even a decent approximate solution and will just exit, printing an error.
 
 #### Your robot and cameras must be rigidly fixed
 
-Hand eye calibration solves for a rigid body transform, so if the whole system isn't rigidly fixed the transform you are solving for is constantly changing and thus impossible to find accurately. For example, if you have a camera and a fixed robot base, check that your robot is securely bolted to a surface. Tighten those bolts up! Also ensure the camera is securely and rigidly fixed in place in a similar fasion. Check for any wobbling and make sure to wait for everything to become still before taking your data points. 
+Hand eye calibration solves for a rigid body transform, so if the whole system isn't rigidly fixed the transform you are solving for is constantly changing and thus impossible to find accurately. For example, if you have a camera and a fixed robot base, check that your robot is securely bolted to a surface. Tighten those bolts up! Also ensure the camera is securely and rigidly fixed in place in a similar fasion. Check for any wobbling and make sure to wait for everything to become still before taking your data points.
 
 #### Sanity Check by Physically Measuring
 
@@ -157,11 +165,11 @@ Slight distortion or variation in time stamp while the arm moves slightly as you
 
 #### Sanity Check via Simulation
 
-If you’re concerned it is a bug in the algorithm you can run it in simulation with v-rep or gazebo (os + v-rep python script is in the repo) to verify it works, since that will avoid all physical measurement problems. From there you could consider taking more real data and incorporating the real data to narrow down the source of the problem. 
+If you’re concerned it is a bug in the algorithm you can run it in simulation with v-rep or gazebo (os + v-rep python script is in the repo) to verify it works, since that will avoid all physical measurement problems. From there you could consider taking more real data and incorporating the real data to narrow down the source of the problem.
 
 #### Sanity Check Transforms and when loading from files
 
-If you're loading from a file you've modified by hand, check if your matrices are transposed, inverted, or in very unusual casses even just the 3x3 Rotation component of the 4x4 rotation matrix may be transposed. 
+If you're loading from a file you've modified by hand, check if your matrices are transposed, inverted, or in very unusual cases even just the 3x3 Rotation component of the 4x4 rotation matrix may be transposed.
 
 Example output
 --------------
@@ -171,18 +179,18 @@ Here is an example output of what you should expect when a run is executed succe
 ```
 Writing pairs to "/home/cpaxton/catkin_ws/src/handeye_calib_camodocal/launch/TransformPairsInput.yml"...
 q[ INFO] [1473813682.393291696]: Calculating Calibration...
-# INFO: Before refinement: H_12 = 
+# INFO: Before refinement: H_12 =
 -0.00160534     0.99916   0.0409473 -0.00813108
 -0.00487176  -0.0409546    0.999149     0.10692
   0.999987  0.00140449  0.00493341   0.0155885
          0           0           0           1
 Ceres Solver Report: Iterations: 99, Initial cost: 1.882582e-05, Final cost: 1.607494e-05, Termination: CONVERGENCE
-# INFO: After refinement: H_12 = 
+# INFO: After refinement: H_12 =
 -0.00282176     0.999009    0.0444162  -0.00746998
   0.0121142   -0.0443789     0.998941     0.101617
    0.999923   0.00335684    -0.011977 -0.000671928
           0            0            0            1
-Result: 
+Result:
 -0.00282176     0.999009    0.0444162  -0.00746998
   0.0121142   -0.0443789     0.998941     0.101617
    0.999923   0.00335684    -0.011977 -0.000671928
