@@ -34,16 +34,9 @@ message("Glog found = ${GLOG_FOUND}")
 SET(Gflags_FOUND ${GFLAGS_FOUND})
 SET(Glog_FOUND ${GLOG_FOUND})
 
-find_package(CAMODOCAL REQUIRED HINTS /usr/local/lib/cmake/CAMODOCAL)
 find_package(Threads QUIET)
-find_package(Ceres QUIET) 
+find_package(Ceres QUIET)
 SET(GFLAGS_LIBRARY ${CMAKE_THREAD_LIBS_INIT})
-
-message("Camodocal found = ${CAMODOCAL_FOUND}")
-message("Camodocal include dir = ${CAMODOCAL_INCLUDE_DIR}")
-message("Camodocal Include Dirs = ${CAMODOCAL_INCLUDE_DIRS}")
-message("Camodocal Def = ${CAMODOCAL_DEFINITIONS}")
-message("Camodocal libs = ${CAMODOCAL_LIBRARIES}")
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -136,8 +129,7 @@ message("Camodocal libs = ${CAMODOCAL_LIBRARIES}")
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES handeye_calib_camodocal
-   CATKIN_DEPENDS eigen roscpp tf trajectory_msgs #vrep_common 
-   DEPENDS CAMODOCAL
+   CATKIN_DEPENDS eigen roscpp tf trajectory_msgs #vrep_common
 )
 
 ###########
@@ -148,7 +140,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS} ${CAMODOCAL_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -162,7 +154,9 @@ include_directories(
 # add_dependencies(handeye_calib_camodocal ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(handeye_calib_camodocal src/handeye_calibration.cpp)
+add_executable(handeye_calib_camodocal
+  src/handeye_calibration.cpp
+  src/camodocal/calib/HandEyeCalibration.cc)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -171,7 +165,7 @@ add_executable(handeye_calib_camodocal src/handeye_calibration.cpp)
 ## Specify libraries to link a library or executable target against
 message("GLOG = ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}")
 target_link_libraries(handeye_calib_camodocal
-  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${CAMODOCAL_LIBRARIES} agast camodocal_brisk camodocal_calib camodocal_chessboard camodocal_dbow2 camodocal_dutils camodocal_dutilscv camodocal_dvision camodocal_location_recognition camodocal_fivepoint camodocal_pose_estimation camodocal_pugixml
+  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}
 )
 #############
 ## Install ##
