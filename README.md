@@ -39,6 +39,7 @@ If installing manually, be sure to follow the instructions for each library as t
 - [Eigen3](eigen.tuxfamily.org)
 - [ceres-solver](ceres-solver.org)
 - [glog](https://github.com/google/glog)
+  - If you encounter an error about `providing "FindGlog.cmake" in CMAKE_MODULE_PATH`, try installing glog from source.
 - [gflags](https://github.com/gflags/gflags)
 
 Examples
