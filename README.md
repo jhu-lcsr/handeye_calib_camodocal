@@ -128,7 +128,7 @@ from a running robot or saved files, as well as where save files are placed.
 #### Collecting Enough Data
 
 We recommend you collect at least ~36 accurate transforms for a good calibration. If it fails to
-converge (i.e. you don't get a good result out). Then you probably have your transforms flipped
+converge (i.e. you don't get a good result out), then you probably have your transforms flipped
 the wrong way or there is too much noise in your data to find a sufficiently accurate calibration.
 
 ### Eliminating Sensor Noise
