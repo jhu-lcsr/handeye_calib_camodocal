@@ -115,6 +115,14 @@ If you have difficulty we cover just about every problem we've seen below in the
 After you run, be sure to back up `TransformPairsInput.yml` and `CalibratedTransform.yml` so you don't lose all
 the transforms and positions you saved!
 
+#### How do I get transforms between the camera and an object it sees?
+
+If a camera is calibrated it is possible to estimate the transform from the camera to a printed pattern with known dimensions. I don’t recommend using a checkerboard for hand eye calibration because the pattern is ambiguous. Use something like:
+
+ - artoolkit.org
+ - https://github.com/ros-perception/ar_track_alvar
+ 
+ They provide instructions on how to set up your camera and create patterns that can be used to generate transforms.
 
 Troubleshooting
 ---------------
