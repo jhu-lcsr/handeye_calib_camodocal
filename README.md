@@ -10,6 +10,38 @@ Example uses include determining exact transforms with both positions and orient
  - set of cameras attached to a moving vehicle (this is what camodocal itself implements)
  - two robot arms bolted together
 
+[keynote presentation explaining many details about hand eye calibration](https://www.icloud.com/keynote/AwBUCAESEJ6BPEHy1-J_58iY9QpDxmMaKWYQ8JT4T8wVxHSfiNn7vMJH1IuI3bnUaJeS8H0P8z768Qw95BLoFg2qMCUCAQEEILObYmsh9SaWe-3YhL6v1kNVeciwzjsktabBmlhsO661#Optimal_Hand_Eye_Calibration) for those that are interested. Practical code and instructions to calibrate your robot can be found below.
+
+![Hand Eye Calibration Basics][1]
+
+![Two Common Solutions to Hand Eye Calibration][2]
+
+![AX=XB Hand Eye Calibration Solution][3]
+
+![AX=ZB Hand Eye Calibration Solution][4]
+
+Feeding data into CamOdoCal
+---------------------------
+
+ 1. Each measurement taken at a different time, position, and orientation narrows down the possible transforms that can represent the unknown X
+
+ 2. Record a list of many transforms A and B taken between different time steps, or relative to the first time step
+      - Rotations are in AxisAngle = UnitAxis*Angle format, or [x_axis,y_axis,z_axis]*𝜃_angle 
+         - ||UnitAxis||=1
+         - || AxisAngle || = 𝜃_angle
+      - Translations are in the normal [x,y,z] format
+ 3. Pass both vectors into EstimateHandEyeScrew()
+ 4. Returns X in the form of a 4x4 transform estimate
+
+![Camodocal Hand Eye Calibration Details][5]
+
+  [1]: http://i.stack.imgur.com/7k4D3.jpg
+  [2]: http://i.stack.imgur.com/d4nVb.jpg
+  [3]: http://i.stack.imgur.com/wdOyg.jpg
+  [4]: http://i.stack.imgur.com/zRQ1i.jpg
+  [5]: http://i.stack.imgur.com/Cvc75.jpg
+
+
 When using this with a robot arm, move it around to a variety of poses and orientations, make sure any data sources that lag behind settle down, then record each pair of poses between the robot base and the robot tip, and between the eye/camera base and the marker, fiducial, or AR tag it is viewing.
 
 This will save out a yaml file with the results. Be sure to load the results into your system using the data formatted as a rotation matrix, dual quaternion, or quaternion + translation. Roll Pitch Yaw can degenerate and will often be inaccurate!
@@ -280,3 +312,14 @@ Acknowledgements
     Lionel Heng, Paul Furgale, and Marc Pollefeys,
     Leveraging Image-based Localization for Infrastructure-based Calibration of a Multi-camera Rig,
     Journal of Field Robotics (JFR), 2015.
+    
+  
+References
+----------
+
+- Strobl, K., & Hirzinger, G. (2006) . Optimal hand-eye calibration. In 2006 IEEE/RSJ international conference on intelligent robots and systems (pp. 4647–4653), October 2006.
+- [Technical University of Munich (TUM) CAMP lab wiki ](http://campar.in.tum.de/Chair/HandEyeCalibration)
+- K. Daniilidis, “Hand–Eye Calibration Using Dual Quaternions,” Int. Journal of Robs. Research, vol. 18, no. 3, pp. 286–298, June 1999.
+- E. Bayro–Corrochano, K. Daniilidis, and G. Sommer, “Motor–Algebra for 3D Kinematics: The Case of Hand–Eye Calibration,” Journal for Mathem. Imaging and Vision, vol. 13, no. 2, pp. 79–100, Oct. 2000. 
+- F. Dornaika and R. Horaud, “Simultaneous Robot–World and Hand– Eye Calibration,” IEEE Trans. on Robs. and Aut., vol. 14, no. 4, pp. 617–622, August 1998. 
+- Note: figures and text are from mixed sources including the presentation author, the various papers referenced, and the TUM wiki.
