@@ -27,7 +27,9 @@ find_package(catkin REQUIRED COMPONENTS
   #vrep_common
 )
 find_package(Gflags REQUIRED)
-find_package(Glog REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(Glog REQUIRED fcl)
+#find_package(Glog REQUIRED)
 
 message("Gflags found = ${GFLAGS_FOUND}")
 message("Glog found = ${GLOG_FOUND}")
