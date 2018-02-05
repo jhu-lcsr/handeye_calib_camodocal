@@ -47,7 +47,7 @@ before_install:
 install:
   - cd /tmp
   - wget https://github.com/google/glog/archive/v0.3.4.tar.gz
-  - tar tar xvf v0.3.4.tar.gz
+  - tar xvf v0.3.4.tar.gz
   - cd glog-0.3.4/
   - ./configure
   - sudo make install
