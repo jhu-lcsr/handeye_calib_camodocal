@@ -2,8 +2,7 @@
 # Author: Tarek Taha
 # Date  : 05/02/2018
 
-# Use ubuntu trusty (14.04) with sudo privileges.
-dist: trusty
+dist: xenial
 sudo: required
 language:
   - generic
