@@ -37,7 +37,7 @@ before_install:
   - sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
   - sudo apt-get update -qq
   - sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-$ROS_DISTRO-catkin ros-$ROS_DISTRO-tf-conversions
-  - sudo apt-get install libgflags-dev
+  - sudo apt-get install libgflags-dev libceres-dev
   - source /opt/ros/$ROS_DISTRO/setup.bash
   # Prepare rosdep to install dependencies.
   - sudo rosdep init
@@ -45,6 +45,12 @@ before_install:
 
 # Create a catkin workspace with the package under integration.
 install:
+  - cd /tmp
+  - wget https://github.com/google/glog/archive/v0.3.4.tar.gz
+  - tar tar xvf v0.3.4.tar.gz
+  - cd glog-0.3.4/
+  - ./configure
+  - sudo make install
   - mkdir -p ~/catkin_ws/src
   - cd ~/catkin_ws/src
   - catkin_init_workspace
