@@ -2,7 +2,7 @@
 # Author: Tarek Taha
 # Date  : 05/02/2018
 
-dist: xenial
+dist: trusty
 sudo: required
 language:
   - generic
