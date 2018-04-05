@@ -179,6 +179,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 	  	ss.clear();
 	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
 	  	std::cerr << "Inverted rotation (w,x,y,z): " << ss.str() << std::endl;
+      return resultAffine;
 }
 
 
