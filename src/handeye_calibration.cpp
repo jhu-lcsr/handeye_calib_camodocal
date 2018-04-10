@@ -6,6 +6,8 @@
 #include <termios.h>
 #include <opencv2/core/eigen.hpp>
 #include "ceres/ceres.h"
+#include "ceres/types.h"
+
 
 typedef std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > eigenVector;
 
@@ -28,8 +30,8 @@ EigenAffineVector baseToTip, cameraToTag;
 
 template<typename Input>
 Eigen::Vector3d eigenRotToEigenVector3dAngleAxis(Input eigenQuat){
-    Eigen::AngleAxisd ax3d(eigenQuat);
-    return ax3d.angle()*ax3d.axis();
+  Eigen::AngleAxisd ax3d(eigenQuat);
+  return ax3d.angle()*ax3d.axis();
 }
 
 /// @return 0 on success, otherwise error code
@@ -43,27 +45,27 @@ int writeTransformPairsToFile(const  EigenAffineVector& t1, const EigenAffineVec
 	auto t2_it = t2.begin();
 
 	if(fs.isOpened())
-	{
+    {
 
-		for (int i = 0; i < t1.size(); ++i, ++t1_it, ++t2_it){
-			cv::Mat_<double> t1cv = cv::Mat_<double>::ones(4,4);
-			cv::eigen2cv(t1_it->matrix(),t1cv);
-			cv::Mat_<double> t2cv = cv::Mat_<double>::ones(4,4);
-			cv::eigen2cv(t2_it->matrix(),t2cv);
-
-
-			std::stringstream ss1;
-			ss1 << "T1_" << i;
-			fs << ss1.str() << t1cv;
-
-			std::stringstream ss2;
-			ss2 << "T2_" << i;
-			fs << ss2.str() << t2cv;
+      for (int i = 0; i < t1.size(); ++i, ++t1_it, ++t2_it){
+        cv::Mat_<double> t1cv = cv::Mat_<double>::ones(4,4);
+        cv::eigen2cv(t1_it->matrix(),t1cv);
+        cv::Mat_<double> t2cv = cv::Mat_<double>::ones(4,4);
+        cv::eigen2cv(t2_it->matrix(),t2cv);
 
 
-		}
-		fs.release();
-	} else {
+        std::stringstream ss1;
+        ss1 << "T1_" << i;
+        fs << ss1.str() << t1cv;
+
+        std::stringstream ss2;
+        ss2 << "T2_" << i;
+        fs << ss2.str() << t2cv;
+
+
+      }
+      fs.release();
+    } else {
 		std::cerr << "failed to open output file " << filename << "\n";
 		return 1;
 	}
@@ -83,41 +85,41 @@ int readTransformPairsFromFile(std::string filename, EigenAffineVector& t1, Eige
 	auto t2_it = std::back_inserter(t2);
 
 	if(fs.isOpened())
-	{
+    {
 
-		for (int i = 0; i < frameCount; ++i, ++t1_it, ++t2_it){
-			// read in frame one
-			{
-				cv::Mat_<double> t1cv = cv::Mat_<double>::ones(4,4);
-				std::stringstream ss1;
-				ss1 << "T1_" << i;
-				fs[ss1.str()] >> t1cv;
-				Eigen::Affine3d t1e;
-				cv::cv2eigen(t1cv,t1e.matrix());
-				*t1_it = t1e;
-			}
+      for (int i = 0; i < frameCount; ++i, ++t1_it, ++t2_it){
+        // read in frame one
+        {
+          cv::Mat_<double> t1cv = cv::Mat_<double>::ones(4,4);
+          std::stringstream ss1;
+          ss1 << "T1_" << i;
+          fs[ss1.str()] >> t1cv;
+          Eigen::Affine3d t1e;
+          cv::cv2eigen(t1cv,t1e.matrix());
+          *t1_it = t1e;
+        }
 
-			// read in frame two
-			{
-				cv::Mat_<double> t2cv = cv::Mat_<double>::ones(4,4);
-				std::stringstream ss2;
-				ss2 << "T2_" << i;
-				fs[ss2.str()] >> t2cv;
-				Eigen::Affine3d t2e;
-				cv::cv2eigen(t2cv,t2e.matrix());
-				*t2_it = t2e;
-			}
+        // read in frame two
+        {
+          cv::Mat_<double> t2cv = cv::Mat_<double>::ones(4,4);
+          std::stringstream ss2;
+          ss2 << "T2_" << i;
+          fs[ss2.str()] >> t2cv;
+          Eigen::Affine3d t2e;
+          cv::cv2eigen(t2cv,t2e.matrix());
+          *t2_it = t2e;
+        }
 
-		}
-		fs.release();
-	} else {
+      }
+      fs.release();
+    } else {
 		std::cerr << "failed to open input file " << filename << "\n";
 		return 1;
 	}
 	return 0;
 }
 
-Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenAffineVector& camToTag)
+Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenAffineVector& camToTag, ceres::Solver::Summary& summary)
 {
 
 	auto t1_it = baseToTip.begin();
@@ -125,7 +127,6 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 
 	Eigen::Affine3d firstEEInverse, firstCamInverse;
 	eigenVector tvecsArm, rvecsArm, tvecsFiducial, rvecsFiducial;
-  ceres::Solver::Summary summary;
 
 	bool firstTransform = true;
 
@@ -133,76 +134,90 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 		auto& eigenEE = *t1_it;
 		auto& eigenCam = *t2_it;
 		if (firstTransform)
-		{
-			firstEEInverse = eigenEE.inverse();
-			firstCamInverse = eigenCam.inverse();
-			ROS_INFO("Adding first transformation.");
-			firstTransform = false;
-		}
+      {
+        firstEEInverse = eigenEE.inverse();
+        firstCamInverse = eigenCam.inverse();
+        ROS_INFO("Adding first transformation.");
+        firstTransform = false;
+      }
 		else
-		{
-			Eigen::Affine3d robotTipinFirstTipBase = firstEEInverse * eigenEE;
-			Eigen::Affine3d fiducialInFirstFiducialBase = firstCamInverse * eigenCam;
+      {
+        Eigen::Affine3d robotTipinFirstTipBase = firstEEInverse * eigenEE;
+        Eigen::Affine3d fiducialInFirstFiducialBase = firstCamInverse * eigenCam;
 
-			rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipinFirstTipBase.rotation()        ));
+        rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipinFirstTipBase.rotation()        ));
 		    tvecsArm.push_back(                                      robotTipinFirstTipBase.translation()     );
 		    rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
 		    tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
-			ROS_INFO("Hand Eye Calibration Transform Pair Added");
+        ROS_INFO("Hand Eye Calibration Transform Pair Added");
 
-			Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
-			Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
-			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl;
-		}
+        Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
+        Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
+        std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl;
+      }
 		std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
 		std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;
 
 
 	}
 
-	  	camodocal::HandEyeCalibration calib;
-	  	Eigen::Matrix4d result;
-	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,summary,false);
-	  	std::cerr << "Result from " << EETFname << " to " << ARTagTFname <<":\n" << result << std::endl;
-	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
-	  	std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
-	  	Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
-	  	std::stringstream ss;
-	  	ss << quaternionResult.w() << ", " << quaternionResult.x() << ", " << quaternionResult.y() << ", " << quaternionResult.z() << std::endl;
-	  	std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
+  camodocal::HandEyeCalibration calib;
+  Eigen::Matrix4d result;
+  calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,summary,false);
+  std::cerr << "Result from " << EETFname << " to " << ARTagTFname <<":\n" << result << std::endl;
+  Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
+  std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
+  Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
+  std::stringstream ss;
+  ss << quaternionResult.w() << ", " << quaternionResult.x() << ", " << quaternionResult.y() << ", " << quaternionResult.z() << std::endl;
+  std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
 
 
-	  	std::cerr << "Result from " << ARTagTFname << " to " <<EETFname  <<":\n" << result << std::endl;
-	  	Eigen::Transform<double,3,Eigen::Affine> resultAffineInv = resultAffine.inverse();
-	  	std::cerr << "Inverted translation (x,y,z) : " << resultAffineInv.translation().transpose() << std::endl;
-	  	quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
-	  	ss.clear();
-	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
-	  	std::cerr << "Inverted rotation (w,x,y,z): " << ss.str() << std::endl;
+  std::cerr << "Result from " << ARTagTFname << " to " <<EETFname  <<":\n" << result << std::endl;
+  Eigen::Transform<double,3,Eigen::Affine> resultAffineInv = resultAffine.inverse();
+  std::cerr << "Inverted translation (x,y,z) : " << resultAffineInv.translation().transpose() << std::endl;
+  quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
+  ss.clear();
+  ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
+  std::cerr << "Inverted rotation (w,x,y,z): " << ss.str() << std::endl;
+
+  return resultAffine;
 }
 
+void writeCalibration(const Eigen::Affine3d &result,
+                      const std::string &filename, ceres::Solver::Summary& summary) {
+  cv::FileStorage fs(filename, cv::FileStorage::WRITE);
 
-void writeCalibration(const Eigen::Affine3d &result, const std::string &filename) {
-		cv::FileStorage fs(filename, cv::FileStorage::WRITE);
+  std::cerr << "FULL CONVERGENCE REPORT \"" <<  "\"...\n";
+  std::cout << summary.BriefReport() << "\n";
+  std::cout << summary.termination_type << "\n";
+  std::cerr << "Writing calibration to \"" << filename << "\"...\n";
+  if(fs.isOpened())
+    {
+      cv::Mat_<double> t1cv = cv::Mat_<double>::ones(4,4);
+      cv::eigen2cv(result.matrix(),t1cv);
 
-	std::cerr << "Writing calibration to \"" << filename << "\"...\n";
-	if(fs.isOpened())
-	{
-		cv::Mat_<double> t1cv = cv::Mat_<double>::ones(4,4);
-		cv::eigen2cv(result.matrix(),t1cv);
-
-		fs << "ArmTipToMarkerTagTransform" << t1cv;
-
-		fs.release();
-	}
+      fs << "ArmTipToMarkerTagTransform" << t1cv;
+      fs << "initial_cost" << summary.initial_cost;
+      fs << "final_cost" << summary.final_cost;
+      fs << "change_cost" << summary.initial_cost - summary.final_cost;
+      fs << "termination_type" << summary.termination_type;
+      fs << "num_succefull_iteration" << summary.num_successful_steps;
+      fs << "num_unsuccefull_iteration" << summary.num_unsuccessful_steps;
+      fs << "num_iteration" << summary.num_unsuccessful_steps +summary.num_successful_steps;
+      fs.release();
+    }
 }
+
 
 Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
                                 const EigenAffineVector& camToTag,
                                 const std::string &filename)
 {
-	auto result = estimateHandEye(baseToTip,camToTag);
-	writeCalibration(result, filename);
+  ceres::Solver::Summary summary;
+
+	auto result = estimateHandEye(baseToTip,camToTag,summary);
+	writeCalibration(result, filename, summary);
 
 	return result;
 }
@@ -213,7 +228,7 @@ int getch()
   static struct termios oldt, newt;
   tcgetattr( STDIN_FILENO, &oldt);           // save old settings
   newt = oldt;
-  newt.c_lflag &= ~(ICANON);                 // disable buffering      
+  newt.c_lflag &= ~(ICANON);                 // disable buffering
   tcsetattr( STDIN_FILENO, TCSANOW, &newt);  // apply new settings
 
   int c = getchar();  // read character (non-blocking)
@@ -225,7 +240,7 @@ int getch()
 void addFrame()
 {
 	ros::Time now = ros::Time::now();
-	tf::StampedTransform EETransform, CamTransform; 
+	tf::StampedTransform EETransform, CamTransform;
 	bool hasEE =true, hasCam = true;
 
 
@@ -234,75 +249,74 @@ void addFrame()
 	if (listener->waitForTransform(cameraTFname,ARTagTFname,now,ros::Duration(1)))
 		listener->lookupTransform(cameraTFname,ARTagTFname,now,CamTransform);
 	else
-	{
-		hasCam = false;
-		ROS_WARN("Fail to Cam TF transform between %s to %s", cameraTFname.c_str(), ARTagTFname.c_str());
-	}
+    {
+      hasCam = false;
+      ROS_WARN("Fail to Cam TF transform between %s to %s", cameraTFname.c_str(), ARTagTFname.c_str());
+    }
 
 	if (listener->waitForTransform(baseTFname,EETFname,now,ros::Duration(1)))
 		listener->lookupTransform(baseTFname,EETFname,now,EETransform);
 	else
-	{
-		hasEE = false;
-		ROS_WARN("Fail to EE TF transform between %s to %s", baseTFname.c_str(), EETFname.c_str());
-	}
+    {
+      hasEE = false;
+      ROS_WARN("Fail to EE TF transform between %s to %s", baseTFname.c_str(), EETFname.c_str());
+    }
 
 	if (hasEE and hasCam)
-	{
-		Eigen::Affine3d eigenEE, eigenCam;
-		tf::transformTFToEigen(EETransform, eigenEE);
-		tf::transformTFToEigen(CamTransform, eigenCam);
-        
-        baseToTip.push_back(eigenEE);
-        cameraToTag.push_back(eigenCam);
+    {
+      Eigen::Affine3d eigenEE, eigenCam;
+      tf::transformTFToEigen(EETransform, eigenEE);
+      tf::transformTFToEigen(CamTransform, eigenCam);
 
-		if (firstTransform)
-		{
-			firstEEInverse = eigenEE.inverse();
-			firstCamInverse = eigenCam.inverse();
-			ROS_INFO("Adding first transformation.");
-			firstTransform = false;
-		}
-		else
-		{
-			Eigen::Affine3d robotTipinFirstTipBase = firstEEInverse * eigenEE;
-			Eigen::Affine3d fiducialInFirstFiducialBase = firstCamInverse * eigenCam;
+      baseToTip.push_back(eigenEE);
+      cameraToTag.push_back(eigenCam);
 
-			rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipinFirstTipBase.rotation()        ));
-		    tvecsArm.push_back(                                      robotTipinFirstTipBase.translation()     );
-		    
-		    rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
-		    tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
-			ROS_INFO("Hand Eye Calibration Transform Pair Added");
+      if (firstTransform)
+        {
+          firstEEInverse = eigenEE.inverse();
+          firstCamInverse = eigenCam.inverse();
+          ROS_INFO("Adding first transformation.");
+          firstTransform = false;
+        }
+      else
+        {
+          Eigen::Affine3d robotTipinFirstTipBase = firstEEInverse * eigenEE;
+          Eigen::Affine3d fiducialInFirstFiducialBase = firstCamInverse * eigenCam;
 
-			std::cerr << "EE Relative transform: \n" << robotTipinFirstTipBase.matrix() << std::endl;
-			std::cerr << "Cam Relative transform: \n" << fiducialInFirstFiducialBase.matrix() << std::endl;
+          rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipinFirstTipBase.rotation()        ));
+          tvecsArm.push_back(                                      robotTipinFirstTipBase.translation()     );
+          rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
+          tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
+          ROS_INFO("Hand Eye Calibration Transform Pair Added");
+
+          std::cerr << "EE Relative transform: \n" << robotTipinFirstTipBase.matrix() << std::endl;
+          std::cerr << "Cam Relative transform: \n" << fiducialInFirstFiducialBase.matrix() << std::endl;
 		      std::cerr << "EE pos: ("
-		        << EETransform.getOrigin().getX() << ", "
-		        << EETransform.getOrigin().getY() << ", "
-		        << EETransform.getOrigin().getZ() << ")\n";
+                    << EETransform.getOrigin().getX() << ", "
+                    << EETransform.getOrigin().getY() << ", "
+                    << EETransform.getOrigin().getZ() << ")\n";
 		      std::cerr << "EE rot: ("
-		        << EETransform.getRotation().getAxis().getX() << ", "
-		        << EETransform.getRotation().getAxis().getY() << ", "
-		        << EETransform.getRotation().getAxis().getZ() << ", "
-		        << EETransform.getRotation().getW() << ")\n";
-			Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
-			Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
-			
-			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl; 
-		}
-		std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
-		std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;
-	}
+                    << EETransform.getRotation().getAxis().getX() << ", "
+                    << EETransform.getRotation().getAxis().getY() << ", "
+                    << EETransform.getRotation().getAxis().getZ() << ", "
+                    << EETransform.getRotation().getW() << ")\n";
+          Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
+          Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
+
+          std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl;
+        }
+      std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
+      std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;
+    }
 	else
-	{
-		ROS_WARN("Fail to get one/both of needed TF transform");
-	}
+    {
+      ROS_WARN("Fail to get one/both of needed TF transform");
+    }
 }
 
 int main (int argc, char** argv)
 {
-  ros::init(argc,argv,"handeye_calib_camodocal");    
+  ros::init(argc,argv,"handeye_calib_camodocal");
   ros::NodeHandle nh("~");
   std::string transformPairsRecordFile;
   std::string transformPairsLoadFile;
@@ -322,12 +336,12 @@ int main (int argc, char** argv)
 
 
   if(loadTransformsFromFile){
-	    std::cerr << "Transform pairs loading file: " << transformPairsLoadFile << "\n";
-	  	EigenAffineVector t1,t2;
-	  	readTransformPairsFromFile(transformPairsLoadFile,t1,t2);
-	  	auto result = estimateHandEye(t1,t2,calibratedTransformFile);
+    std::cerr << "Transform pairs loading file: " << transformPairsLoadFile << "\n";
+    EigenAffineVector t1,t2;
+    readTransformPairsFromFile(transformPairsLoadFile,t1,t2);
+    auto result = estimateHandEye(t1,t2,calibratedTransformFile);
 
-	  	return 0;
+    return 0;
   }
 
   std::cerr << "Transform pairs recording to file: " << transformPairsRecordFile << "\n";
@@ -341,68 +355,66 @@ int main (int argc, char** argv)
   ROS_INFO("Press q to calibrate frame transformation and exit the application.");
 
   while (ros::ok())
-  {
-    key = getch();
-    if ((key == 's') || (key == 'S')){
-      std::cerr << "Adding Transform #:" << rvecsArm.size() << "\n";
-      addFrame();
-      writeTransformPairsToFile(baseToTip,cameraToTag,transformPairsRecordFile);
+    {
+      key = getch();
+      if ((key == 's') || (key == 'S')){
+        std::cerr << "Adding Transform #:" << rvecsArm.size() << "\n";
+        addFrame();
+        writeTransformPairsToFile(baseToTip,cameraToTag,transformPairsRecordFile);
+      }
+      else if ((key == 'd') || (key == 'D'))
+        {
+          ROS_INFO("Deleted last frame transformation. Number of Current Transformations: %u",(unsigned int)rvecsArm.size());
+          rvecsArm.pop_back();
+          tvecsArm.pop_back();
+          rvecsFiducial.pop_back();
+          tvecsFiducial.pop_back();
+          baseToTip.pop_back();
+          cameraToTag.pop_back();
+        }
+      else if ((key == 'q') || (key == 'Q'))
+        {
+          if (rvecsArm.size() < 5)
+            {
+              ROS_WARN("Number of calibration transform pairs < 5.");
+              ROS_INFO("Node Quit");
+            }
+          ROS_INFO("Calculating Calibration...");
+          camodocal::HandEyeCalibration calib;
+          Eigen::Matrix4d result;
+          ceres::Solver::Summary summary;
+
+          calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,summary,false);
+
+          std::cout << "# CERES REPORT: " << std::endl;
+          std::cout << summary.FullReport() << std::endl;
+          std::cerr << "Quaternion values are output in wxyz order\n";
+          std::cerr << "Calibration result (" << ARTagTFname << " pose in " << EETFname << " frame): \n"
+                    << result << std::endl;
+          Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
+          std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
+          Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
+          std::stringstream ss;
+          ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
+          std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
+
+          writeCalibration(resultAffine,calibratedTransformFile,summary);
+
+          Eigen::Transform<double,3,Eigen::Affine> resultAffineInv = resultAffine.inverse();
+          std::cerr << "Inverted Calibration result (" << EETFname << " pose in " << ARTagTFname << " frame): \n";
+          std::cerr << "Translation (x,y,z): " << resultAffineInv.translation().transpose() << std::endl;
+          quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
+          ss.clear();
+          ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
+          std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
+          break;
+        }
+      else
+        {
+          std::cerr << key << " pressed.\n";
+        }
+      r.sleep();
     }
-  	else if ((key == 'd') || (key == 'D'))
-  	{
-  		ROS_INFO("Deleted last frame transformation. Number of Current Transformations: %u",(unsigned int)rvecsArm.size());
-  		rvecsArm.pop_back();
-  		tvecsArm.pop_back();
-  		rvecsFiducial.pop_back();
-  		tvecsFiducial.pop_back();
-  		baseToTip.pop_back();
-  		cameraToTag.pop_back();
-  	}
-    else if ((key == 'q') || (key == 'Q'))
-	{
-	  	if (rvecsArm.size() < 5)
-	  	{
-	  		ROS_WARN("Number of calibration transform pairs < 5.");
-				ROS_INFO("Node Quit");
-	  	}
-	  	ROS_INFO("Calculating Calibration...");
-	  	camodocal::HandEyeCalibration calib;
-	  	Eigen::Matrix4d result;
-      ceres::Solver::Summary summary;
-
-	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,summary,false);
-
-      std::cout << "# CERES REPORT: " << std::endl;
-      std::cout << summary.FullReport() << std::endl;
-	    std::cerr << "Quaternion values are output in wxyz order\n";
-	  	std::cerr << "Calibration result (" << ARTagTFname << " pose in " << EETFname << " frame): \n"
-	  		<< result << std::endl;
-	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
-	  	std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
-	  	Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
-	  	std::stringstream ss;
-	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
-	  	std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
-
-	  	writeCalibration(resultAffine,calibratedTransformFile);
-
-	  	Eigen::Transform<double,3,Eigen::Affine> resultAffineInv = resultAffine.inverse();
-	  	std::cerr << "Inverted Calibration result (" << EETFname << " pose in " << ARTagTFname << " frame): \n";
-	  	std::cerr << "Translation (x,y,z): " << resultAffineInv.translation().transpose() << std::endl;
-	  	quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
-	  	ss.clear();
-	  	ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
-	  	std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
-	  	
-
-	  	break;
-	}
-	else
-	{
-		std::cerr << key << " pressed.\n";
-	}
-    r.sleep();
-  }
 
   ros::shutdown();
   return (0);
