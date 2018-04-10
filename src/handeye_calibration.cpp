@@ -5,6 +5,7 @@
 #include <eigen3/Eigen/Geometry>
 #include <termios.h>
 #include <opencv2/core/eigen.hpp>
+#include "ceres/ceres.h"
 
 typedef std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > eigenVector;
 
@@ -124,6 +125,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 
 	Eigen::Affine3d firstEEInverse, firstCamInverse;
 	eigenVector tvecsArm, rvecsArm, tvecsFiducial, rvecsFiducial;
+  ceres::Solver::Summary summary;
 
 	bool firstTransform = true;
 
@@ -144,15 +146,13 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 
 			rvecsArm.push_back(     eigenRotToEigenVector3dAngleAxis(robotTipinFirstTipBase.rotation()        ));
 		    tvecsArm.push_back(                                      robotTipinFirstTipBase.translation()     );
-		    
 		    rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
 		    tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
 			ROS_INFO("Hand Eye Calibration Transform Pair Added");
 
 			Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
 			Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
-			
-			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl; 
+			std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl;
 		}
 		std::cerr << "EE transform: \n" << eigenEE.matrix() << std::endl;
 		std::cerr << "Cam transform: \n" << eigenCam.matrix() << std::endl;
@@ -162,7 +162,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 
 	  	camodocal::HandEyeCalibration calib;
 	  	Eigen::Matrix4d result;
-	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,false);
+	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,summary,false);
 	  	std::cerr << "Result from " << EETFname << " to " << ARTagTFname <<":\n" << result << std::endl;
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
 	  	std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
@@ -197,7 +197,9 @@ void writeCalibration(const Eigen::Affine3d &result, const std::string &filename
 	}
 }
 
-Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenAffineVector& camToTag, const std::string &filename)
+Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
+                                const EigenAffineVector& camToTag,
+                                const std::string &filename)
 {
 	auto result = estimateHandEye(baseToTip,camToTag);
 	writeCalibration(result, filename);
@@ -329,7 +331,6 @@ int main (int argc, char** argv)
   }
 
   std::cerr << "Transform pairs recording to file: " << transformPairsRecordFile << "\n";
-  
   ros::Rate r(10); // 10 hz
   listener = new(tf::TransformListener);
 
@@ -367,10 +368,13 @@ int main (int argc, char** argv)
 	  	ROS_INFO("Calculating Calibration...");
 	  	camodocal::HandEyeCalibration calib;
 	  	Eigen::Matrix4d result;
-	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,false);
+      ceres::Solver::Summary summary;
 
-	    	std::cerr << "Quaternion values are output in wxyz order\n";
-	    
+	  	calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,summary,false);
+
+      std::cout << "# CERES REPORT: " << std::endl;
+      std::cout << summary.FullReport() << std::endl;
+	    std::cerr << "Quaternion values are output in wxyz order\n";
 	  	std::cerr << "Calibration result (" << ARTagTFname << " pose in " << EETFname << " frame): \n"
 	  		<< result << std::endl;
 	  	Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);

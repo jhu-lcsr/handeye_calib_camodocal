@@ -3,7 +3,7 @@
 
 #include <Eigen/Eigen>
 #include <Eigen/StdVector>
-
+#include "ceres/ceres.h"
 #include "DualQuaternion.h"
 
 namespace camodocal
@@ -48,30 +48,36 @@ public:
     /// @param tvecs2 vector of the translation for the second transform with size N
     ///
     /// @pre all sets of parameters must have the same number of elements
+    /* static void estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1, */
+    /*                                  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1, */
+    /*                                  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2, */
+    /*                                  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2, */
+    /*                                  Eigen::Matrix4d& H_12, bool planarMotion = false); */
+
     static void estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
                                      const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
                                      const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
                                      const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2,
-                                     Eigen::Matrix4d& H_12, bool planarMotion = false);
-    
-    
-    
-    
-    static void setVerbose(bool on = true); 
+                                     Eigen::Matrix4d& H_12,
+                                     ceres::Solver::Summary& summary,
+                                     bool planarMotion = false);
+
+    static void setVerbose(bool on = true);
 
 private:
     /// @brief solve ax^2 + bx + c = 0
     static bool solveQuadraticEquation(double a, double b, double c, double& x1, double& x2);
-    
+
     /// @brief Initial hand-eye screw estimate using fast but coarse Eigen::JacobiSVD
     static DualQuaterniond estimateHandEyeScrewInitial(Eigen::MatrixXd& T,bool planarMotion);
 
     /// @brief Refine hand-eye screw estimate using initial coarse estimate and Ceres Solver Library.
     static void estimateHandEyeScrewRefine(DualQuaterniond& dq,
-                              const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
-                              const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
-                              const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
-                              const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2);
+                                           const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
+                                           const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
+                                           const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
+                                           const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2,
+                                           ceres::Solver::Summary& summary);
 
     static bool mVerbose;
 };
