@@ -55,12 +55,20 @@ public:
     /*                                  Eigen::Matrix4d& H_12, bool planarMotion = false); */
 
     static void estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
-                                     const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
-                                     const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
-                                     const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2,
-                                     Eigen::Matrix4d& H_12,
-                                     ceres::Solver::Summary& summary,
-                                     bool planarMotion = false);
+                                   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
+                                   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
+                                   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2,
+                                   Eigen::Matrix4d& H_12,
+                                   bool planarMotion = false);
+
+
+    static void estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
+                                   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
+                                   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
+                                   const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2,
+                                   Eigen::Matrix4d& H_12,
+                                   ceres::Solver::Summary& summary,
+                                   bool planarMotion = false);
 
     static void setVerbose(bool on = true);
 
@@ -72,6 +80,12 @@ private:
     static DualQuaterniond estimateHandEyeScrewInitial(Eigen::MatrixXd& T,bool planarMotion);
 
     /// @brief Refine hand-eye screw estimate using initial coarse estimate and Ceres Solver Library.
+    static void estimateHandEyeScrewRefine(DualQuaterniond& dq,
+                                         const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
+                                         const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
+                                         const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
+                                         const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2);
+
     static void estimateHandEyeScrewRefine(DualQuaterniond& dq,
                                            const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
                                            const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
