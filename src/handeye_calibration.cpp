@@ -481,18 +481,24 @@ int main(int argc, char **argv) {
       ROS_INFO("Calculating Calibration...");
       camodocal::HandEyeCalibration calib;
       Eigen::Matrix4d result;
-      ceres::Solver::Summary summary;
+      Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
 
-      calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial,
-                                 tvecsFiducial, result, summary, false);
+      if (addSolverSummary) {
+        ceres::Solver::Summary summary;
+        calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial,
+                                   tvecsFiducial, result, summary, false);
+        writeCalibration(resultAffine, calibratedTransformFile, summary);
+      } else {
+        calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial,
+                                   tvecsFiducial, result, false);
+        writeCalibration(resultAffine, calibratedTransformFile);
+      }
 
-      std::cout << "# CERES REPORT: " << std::endl;
-      std::cout << summary.FullReport() << std::endl;
       std::cerr << "Quaternion values are output in wxyz order\n";
       std::cerr << "Calibration result (" << ARTagTFname << " pose in "
                 << EETFname << " frame): \n"
                 << result << std::endl;
-      Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
+      // Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
       std::cerr << "Translation (x,y,z) : "
                 << resultAffine.translation().transpose() << std::endl;
       Eigen::Quaternion<double> quaternionResult(resultAffine.rotation());
@@ -500,8 +506,6 @@ int main(int argc, char **argv) {
       ss << quaternionResult.w() << " " << quaternionResult.x() << " "
          << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
       std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
-
-      writeCalibration(resultAffine, calibratedTransformFile, summary);
 
       Eigen::Transform<double, 3, Eigen::Affine> resultAffineInv =
           resultAffine.inverse();
