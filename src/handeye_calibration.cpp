@@ -266,8 +266,8 @@ void writeCalibration(const Eigen::Affine3d &result,
       fs << "final_cost" << summary.final_cost;
       fs << "change_cost" << summary.initial_cost - summary.final_cost;
       fs << "termination_type" << summary.termination_type;
-      fs << "num_succefull_iteration" << summary.num_successful_steps;
-      fs << "num_unsuccefull_iteration" << summary.num_unsuccessful_steps;
+      fs << "num_successful_iteration" << summary.num_successful_steps;
+      fs << "num_unsuccessful_iteration" << summary.num_unsuccessful_steps;
       fs << "num_iteration" << summary.num_unsuccessful_steps +summary.num_successful_steps;
       fs.release();
     }
@@ -291,13 +291,21 @@ void writeCalibration(const Eigen::Affine3d &result,
 
 Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
                                 const EigenAffineVector& camToTag,
-                                const std::string &filename)
+                                const std::string &filename,
+                                const bool addSolverSummary)
 {
-  ceres::Solver::Summary summary;
-	auto result = estimateHandEye(baseToTip,camToTag,summary);
-	writeCalibration(result, filename, summary);
+  if (addSolverSummary) {
 
-	return result;
+    ceres::Solver::Summary summary;
+    auto result = estimateHandEye(baseToTip,camToTag,summary);
+    writeCalibration(result, filename, summary);
+    return result;
+  }
+	else {
+    auto result = estimateHandEye(baseToTip,camToTag);
+    writeCalibration(result, filename);
+    return result;
+  }
 }
 
 // function getch is from http://answers.ros.org/question/63491/keyboard-key-pressed/
@@ -400,11 +408,14 @@ int main (int argc, char** argv)
   std::string transformPairsLoadFile;
   std::string calibratedTransformFile;
   bool loadTransformsFromFile = false;
+  bool addSolverSummary = false;
+
   //getting TF names
   nh.param("ARTagTF", ARTagTFname,std::string("/camera_2/ar_marker_0"));
   nh.param("cameraTF", cameraTFname,std::string("/camera_2_link"));
   nh.param("EETF", EETFname,std::string("/ee_fixed_link"));
   nh.param("baseTF", baseTFname,std::string("/base_link"));
+  nh.param("add_solver_summary", addSolverSummary,false);
   nh.param("load_transforms_from_file", loadTransformsFromFile, false);
   nh.param("transform_pairs_record_filename", transformPairsRecordFile, std::string("TransformPairsInput.yml"));
   nh.param("transform_pairs_load_filename", transformPairsLoadFile, std::string("TransformPairsOutput.yml"));
@@ -417,8 +428,7 @@ int main (int argc, char** argv)
     std::cerr << "Transform pairs loading file: " << transformPairsLoadFile << "\n";
     EigenAffineVector t1,t2;
     readTransformPairsFromFile(transformPairsLoadFile,t1,t2);
-    auto result = estimateHandEye(t1,t2,calibratedTransformFile);
-
+    auto result = estimateHandEye(t1,t2,calibratedTransformFile,addSolverSummary);
     return 0;
   }
 

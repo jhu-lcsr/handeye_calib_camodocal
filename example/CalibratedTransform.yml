@@ -14,6 +14,6 @@ initial_cost: 9.6952771603052695e-04
 final_cost: 6.0056906684146673e-04
 change_cost: 3.6895864918906022e-04
 termination_type: 0
-num_succefull_iteration: 73
-num_unsuccefull_iteration: 11
+num_successful_iteration: 73
+num_unsuccessful_iteration: 11
 num_iteration: 84
