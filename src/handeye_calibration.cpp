@@ -214,7 +214,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip, const EigenA
 		    rvecsFiducial.push_back(eigenRotToEigenVector3dAngleAxis(fiducialInFirstFiducialBase.rotation()   ));
 		    tvecsFiducial.push_back(                                 fiducialInFirstFiducialBase.translation());
         ROS_INFO("Hand Eye Calibration Transform Pair Added");
-
+ 
         Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3); r_tmp[3] = 0;
         Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3); c_tmp[3] = 0;
         std::cerr << "L2Norm EE: "  << robotTipinFirstTipBase.matrix().block(0,3,3,1).norm() << " vs Cam:" << fiducialInFirstFiducialBase.matrix().block(0,3,3,1).norm()<<std::endl;
@@ -425,7 +425,7 @@ int main (int argc, char** argv)
 
 
   if(loadTransformsFromFile){
-    std::cerr << "Transform pairs loading file: " << transformPairsLoadFile << "\n";
+     std::cerr << "Transform pairs loading file: " << transformPairsLoadFile << "\n";
     EigenAffineVector t1,t2;
     readTransformPairsFromFile(transformPairsLoadFile,t1,t2);
     auto result = estimateHandEye(t1,t2,calibratedTransformFile,addSolverSummary);
@@ -472,21 +472,25 @@ int main (int argc, char** argv)
           Eigen::Matrix4d result;
           ceres::Solver::Summary summary;
 
-          calib.estimateHandEyeScrew(rvecsArm,tvecsArm,rvecsFiducial,tvecsFiducial,result,summary,false);
+          if (addSolverSummary) {
+            calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial,
+                                       tvecsFiducial, result, summary, false);
+          }
+          else
+            {
+            calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial,
+                                       tvecsFiducial, result, false);
+          }
 
-          std::cout << "# CERES REPORT: " << std::endl;
-          std::cout << summary.FullReport() << std::endl;
+          Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
           std::cerr << "Quaternion values are output in wxyz order\n";
           std::cerr << "Calibration result (" << ARTagTFname << " pose in " << EETFname << " frame): \n"
                     << result << std::endl;
-          Eigen::Transform<double,3,Eigen::Affine> resultAffine(result);
           std::cerr << "Translation (x,y,z) : " << resultAffine.translation().transpose() << std::endl;
           Eigen::Quaternion<double> quaternionResult (resultAffine.rotation());
           std::stringstream ss;
           ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
           std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
-
-          writeCalibration(resultAffine,calibratedTransformFile,summary);
 
           Eigen::Transform<double,3,Eigen::Affine> resultAffineInv = resultAffine.inverse();
           std::cerr << "Inverted Calibration result (" << EETFname << " pose in " << ARTagTFname << " frame): \n";
@@ -495,6 +499,14 @@ int main (int argc, char** argv)
           ss.clear();
           ss << quaternionResult.w() << " " << quaternionResult.x() << " " << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
           std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
+
+          if (addSolverSummary) {
+            writeCalibration(resultAffine, calibratedTransformFile, summary);
+          }
+          else
+            {
+              writeCalibration(resultAffine, calibratedTransformFile);
+            }
           break;
         }
       else
