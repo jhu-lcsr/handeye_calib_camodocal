@@ -5,8 +5,8 @@
 #include <eigen3/Eigen/Geometry>
 #include <termios.h>
 #include <opencv2/core/eigen.hpp>
-#include "ceres/ceres.h"
-#include "ceres/types.h"
+#include <ceres/ceres.h>
+#include <ceres/types.h>
 
 typedef std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > eigenVector;
 

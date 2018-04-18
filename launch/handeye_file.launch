@@ -22,7 +22,6 @@
 
   <!-- When you record transforms from a live running robot to a file,
        and when you load that file from disk this is the filename that will be loaded.
-
        After it is saved be sure to back this file up if you don't want it to be
        overwritten by accident!
   -->
@@ -30,8 +29,8 @@
 
   <!-- The actual transform result you are solving for is saved with this filename -->
   <arg name="calibrated_filename"          default="CalibratedTransform.yml" />
-  <!-- tag the solver summary along the transformm in the calibrated filename -->
-  <arg name="add_solver_summary"     default="false" />
+  <!-- tag the solver summary along the transform in the calibrated filename -->
+  <arg name="add_solver_summary"     default="false" doc='Save a summary of the solver results in addition to the transforms in the calibrated output file. The summary includes the "ArmTipToMarkerTagTransform", "initial_cost", "final_cost, "change_cost", "termination_type", "num_successful_iteration", "num_unsuccessful_iteration", "num_iteration"'/>
 
   <node pkg="handeye_calib_camodocal" type="handeye_calib_camodocal" name="handeye_calib_camodocal" output="screen">
   <!-- handeye_calib_camodocal arg pass -->

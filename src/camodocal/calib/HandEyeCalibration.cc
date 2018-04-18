@@ -3,7 +3,7 @@
 #include <iostream>
 #include <boost/throw_exception.hpp>
 
-#include "ceres/ceres.h"
+#include <ceres/ceres.h>
 #include "camodocal/calib/DualQuaternion.h"
 #include "camodocal/EigenUtils.h"
 

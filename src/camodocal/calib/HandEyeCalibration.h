@@ -3,7 +3,7 @@
 
 #include <Eigen/Eigen>
 #include <Eigen/StdVector>
-#include "ceres/ceres.h"
+#include <ceres/ceres.h>
 #include "DualQuaternion.h"
 
 namespace camodocal
