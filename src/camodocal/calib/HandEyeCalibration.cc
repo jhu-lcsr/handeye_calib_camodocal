@@ -3,7 +3,7 @@
 #include <iostream>
 #include <boost/throw_exception.hpp>
 
-#include "ceres/ceres.h"
+#include <ceres/ceres.h>
 #include "camodocal/calib/DualQuaternion.h"
 #include "camodocal/EigenUtils.h"
 
@@ -117,7 +117,7 @@ static Eigen::MatrixXd AxisAngleToSTransposeBlockOfT(
         return ScrewToStransposeBlockofT(a,a_prime,b,b_prime);
 }
 
-// docs in header
+  // docs in header
 void
 HandEyeCalibration::estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
                                          const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
@@ -127,7 +127,6 @@ HandEyeCalibration::estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eige
                                          bool planarMotion)
 {
     int motionCount = rvecs1.size();
-
     Eigen::MatrixXd T(motionCount * 6, 8);
     T.setZero();
 
@@ -162,6 +161,56 @@ HandEyeCalibration::estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eige
         std::cout << "# INFO: After refinement: H_12 = " << std::endl;
         std::cout << H_12 << std::endl;
     }
+
+
+}
+
+// docs in header
+void
+HandEyeCalibration::estimateHandEyeScrew(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
+                                         const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
+                                         const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
+                                         const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2,
+                                         Eigen::Matrix4d& H_12,
+                                         ceres::Solver::Summary& summary,
+                                         bool planarMotion)
+{
+    int motionCount = rvecs1.size();
+    Eigen::MatrixXd T(motionCount * 6, 8);
+    T.setZero();
+
+    for (size_t i = 0; i < motionCount; ++i)
+    {
+        const Eigen::Vector3d& rvec1 = rvecs1.at(i);
+        const Eigen::Vector3d& tvec1 = tvecs1.at(i);
+        const Eigen::Vector3d& rvec2 = rvecs2.at(i);
+        const Eigen::Vector3d& tvec2 = tvecs2.at(i);
+
+        // Skip cases with zero rotation
+        if (rvec1.norm() == 0 || rvec2.norm() == 0) continue;
+
+        T.block<6,8>(i * 6, 0) = AxisAngleToSTransposeBlockOfT(rvec1,tvec1,rvec2,tvec2);
+    }
+
+    auto dq = estimateHandEyeScrewInitial(T,planarMotion);
+
+
+    H_12 = dq.toMatrix();
+    if (mVerbose)
+    {
+        std::cout << "# INFO: Before refinement: H_12 = " << std::endl;
+        std::cout << H_12 << std::endl;
+    }
+
+    estimateHandEyeScrewRefine(dq, rvecs1, tvecs1, rvecs2, tvecs2, summary);
+
+    H_12 = dq.toMatrix();
+    if (mVerbose)
+    {
+        std::cout << "# INFO: After refinement: H_12 = " << std::endl;
+        std::cout << H_12 << std::endl;
+    }
+
 }
 
 
@@ -299,10 +348,11 @@ HandEyeCalibration::solveQuadraticEquation(double a, double b, double c, double&
 // docs in header
 void
 HandEyeCalibration::estimateHandEyeScrewRefine(DualQuaterniond& dq,
-                                  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
-                                  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
-                                  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
-                                  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2)
+                                               const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
+                                               const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
+                                               const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
+                                               const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2,
+                                               ceres::Solver::Summary& summary)
 {
     Eigen::Matrix4d H = dq.toMatrix();
     double p[7] = {dq.real().w(), dq.real().x(), dq.real().y(), dq.real().z(),
@@ -330,7 +380,56 @@ HandEyeCalibration::estimateHandEyeScrewRefine(DualQuaterniond& dq,
     options.jacobi_scaling = true;
     options.max_num_iterations = 500;
 
+    // ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+
+    if (mVerbose)
+    {
+        std::cout << summary.BriefReport() << std::endl;
+    }
+
+    Eigen::Quaterniond q(p[0], p[1], p[2], p[3]);
+    Eigen::Vector3d t;
+    t << p[4], p[5], p[6];
+    dq = DualQuaterniond(q, t);
+
+}
+
+void
+HandEyeCalibration::estimateHandEyeScrewRefine(DualQuaterniond& dq,
+                                               const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs1,
+                                               const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs1,
+                                               const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& rvecs2,
+                                               const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >& tvecs2)
+{
+    Eigen::Matrix4d H = dq.toMatrix();
+    double p[7] = {dq.real().w(), dq.real().x(), dq.real().y(), dq.real().z(),
+                   H(0, 3), H(1, 3), H(2, 3)};
     ceres::Solver::Summary summary;
+
+    ceres::Problem problem;
+    for (size_t i = 0; i < rvecs1.size(); i++)
+    {
+        // ceres deletes the objects allocated here for the user
+        ceres::CostFunction* costFunction =
+            new ceres::AutoDiffCostFunction<PoseError, 1, 4, 3>(
+                new PoseError(rvecs1[i], tvecs1[i], rvecs2[i], tvecs2[i]));
+
+        problem.AddResidualBlock(costFunction, NULL, p, p + 4);
+    }
+
+    // ceres deletes the object allocated here for the user
+    ceres::LocalParameterization* quaternionParameterization =
+        new ceres::QuaternionParameterization;
+
+    problem.SetParameterization(p, quaternionParameterization);
+
+    ceres::Solver::Options options;
+    options.linear_solver_type = ceres::DENSE_QR;
+    options.jacobi_scaling = true;
+    options.max_num_iterations = 500;
+
+    // ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
 
     if (mVerbose)
@@ -343,5 +442,4 @@ HandEyeCalibration::estimateHandEyeScrewRefine(DualQuaterniond& dq,
     t << p[4], p[5], p[6];
     dq = DualQuaterniond(q, t);
 }
-
 }

@@ -30,6 +30,8 @@
 
   <!-- The actual transform result you are solving for is saved with this filename -->
   <arg name="calibrated_filename"          default="CalibratedTransform.yml" />
+  <!-- tag the solver summary along the transformm in the calibrated filename -->
+  <arg name="add_solver_summary"     default="false" doc='Save a summary of the solver results in addition to the transforms in the calibrated output file. The summary includes the "ArmTipToMarkerTagTransform", "initial_cost", "final_cost, "change_cost", "termination_type", "num_successful_iteration", "num_unsuccessful_iteration", "num_iteration"'/>
 
   <node pkg="handeye_calib_camodocal" type="handeye_calib_camodocal" name="handeye_calib_camodocal" output="screen">
   <!-- handeye_calib_camodocal arg pass -->
@@ -38,12 +40,13 @@
     <param name="EETF"          type="str" value="$(arg EETF)" />
     <param name="baseTF"        type="str" value="$(arg baseTF)" />
     <param name="load_transforms_from_file" type="bool" value="true"/>
+    <!-- tag the solver summary along the transformm in the calibrated filename -->
+    <param name="add_solver_summary" type="bool" value="$(arg add_solver_summary)"/>
     <!-- When you record transforms from a live running robot to a file, this is where the file is saved -->
     <param name="transform_pairs_record_filename" type="str" value="$(arg data_folder)/$(arg filename)" />
     <!-- When you load transforms you saved to a file earlier, this is where the file is saved -->
     <param name="transform_pairs_load_filename"  type="str" value="$(arg data_folder)/$(arg filename)" />
     <param name="output_calibrated_transform_filename" type="str" value="$(arg data_folder)/$(arg calibrated_filename)" />
-    <param name="load_transforms_from_file" type="bool" value="true"/>
   </node>
 
 </launch>
