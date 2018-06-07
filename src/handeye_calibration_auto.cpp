@@ -532,7 +532,7 @@ int main(int argc, char** argv) {
             std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
 
             break;
-        } else {
+        } else if (key.length() > 0) {
             std::cerr << key << " received.\n";
         }
         key = "";
