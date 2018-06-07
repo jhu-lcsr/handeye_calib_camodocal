@@ -524,28 +524,28 @@ int main(int argc, char** argv) {
             std::ofstream outputfile(output_launch_filename);
             outputfile << "<launch>" << std::endl;
             outputfile << "  <arg name=\"ee_frame\" default=\"" << EETFname
-                       << "\" />";
+                       << "\" />" << std::endl;
             outputfile << "  <arg name=\"marker_frame\" default=\""
-                       << ARTagTFname << "\" />";
+                       << ARTagTFname << "\" />" << std::endl;
             outputfile << "  <node name=\"endpoint_to_marker\"" << std::endl;
             outputfile
                 << "        pkg=\"tf\" type=\"static_transform_publisher\""
                 << std::endl;
             outputfile << "        args=\"";
             outputfile << x << " " << y << " " << z << std::endl;
-            outputfile << "              " << quaternionResult.w() << " "
-                       << quaternionResult.x() << " " << quaternionResult.y()
-                       << " " << quaternionResult.z() << std::endl;
+            outputfile << "              " << quaternionResult.x() << " "
+                       << quaternionResult.y() << " " << quaternionResult.z()
+                       << " " << quaternionResult.w() << " " << std::endl;
             outputfile
-                << "              $(arg ee_frame) /endpoint_marker 1000/>"
+                << "              $(arg ee_frame) /endpoint_marker 1000\" />"
                 << std::endl;
             outputfile << "</launch>" << std::endl;
             outputfile.close();
 
             tf::StampedTransform EETransform;
-            tf::StampedTransform Camera2MarkerTransform;
+            tf::StampedTransform Marker2CameraTransform;
             Eigen::Affine3d eigenEE;
-            Eigen::Affine3d eigenCamera2Marker;
+            Eigen::Affine3d eigenMarker2Camera;
             ros::Time now = ros::Time::now();
             if (listener->waitForTransform(baseTFname, EETFname, now,
                                            ros::Duration(1)) &&
@@ -554,15 +554,16 @@ int main(int argc, char** argv) {
                 listener->lookupTransform(baseTFname, EETFname, now,
                                           EETransform);
                 listener->lookupTransform(ARTagTFname, cameraTFname, now,
-                                          Camera2MarkerTransform);
+                                          Marker2CameraTransform);
                 tf::transformTFToEigen(EETransform, eigenEE);
-                tf::transformTFToEigen(Camera2MarkerTransform,
-                                       eigenCamera2Marker);
-                Eigen::Affine3d BaseToCamera =
-                    (eigenEE * resultAffine * eigenCamera2Marker.inverse())
-                        .inverse();
-                Eigen::Transform<double, 3, Eigen::Affine> result_affine(
-                    BaseToCamera);
+                tf::transformTFToEigen(Marker2CameraTransform,
+                                       eigenMarker2Camera);
+                Eigen::Matrix4d m = eigenEE.matrix();
+                m *= resultAffine.matrix();
+                m *= eigenMarker2Camera.matrix();
+                Eigen::Affine3d result_affine;
+                result_affine.matrix() = m;
+
                 Eigen::Quaternion<double> quaternion_result(
                     result_affine.rotation());
                 x = result_affine.translation().transpose()[0];
@@ -573,10 +574,10 @@ int main(int argc, char** argv) {
                 base_to_camera_outputfile << "<launch>" << std::endl;
                 base_to_camera_outputfile
                     << "  <arg name=\"base_frame\" default=\"" << baseTFname
-                    << "\" />";
+                    << "\" />" << std::endl;
                 base_to_camera_outputfile
                     << "  <arg name=\"camera_frame\" default=\"" << cameraTFname
-                    << "\" />";
+                    << "\" />" << std::endl;
                 base_to_camera_outputfile
                     << "  <node "
                        "name=\"base_to_camera_static_transform_publisher\""
@@ -588,11 +589,11 @@ int main(int argc, char** argv) {
                 base_to_camera_outputfile << x << " " << y << " " << z
                                           << std::endl;
                 base_to_camera_outputfile
-                    << "              " << quaternion_result.w() << " "
-                    << quaternion_result.x() << " " << quaternion_result.y()
-                    << " " << quaternion_result.z() << std::endl;
+                    << "              " << quaternion_result.x() << " "
+                    << quaternion_result.y() << " " << quaternion_result.z()
+                    << " " << quaternion_result.w() << " " << std::endl;
                 base_to_camera_outputfile << "              $(arg base_frame) "
-                                             "$(arg camera_frame) 1000/>"
+                                             "$(arg camera_frame) 1000\" />"
                                           << std::endl;
                 base_to_camera_outputfile << "</launch>" << std::endl;
                 base_to_camera_outputfile.close();
