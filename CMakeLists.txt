@@ -208,6 +208,10 @@ add_executable(handeye_calib_camodocal
   src/handeye_calibration.cpp
   src/camodocal/calib/HandEyeCalibration.cc)
 
+add_executable(handeye_calib_camodocal_auto
+  src/handeye_calibration_auto.cpp
+  src/camodocal/calib/HandEyeCalibration.cc)
+
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(handeye_calib_camodocal_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -215,6 +219,9 @@ add_executable(handeye_calib_camodocal
 ## Specify libraries to link a library or executable target against
 message("GLOG = ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS}")
 target_link_libraries(handeye_calib_camodocal
+  ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}
+)
+target_link_libraries(handeye_calib_camodocal_auto
   ${catkin_LIBRARIES} ${GLOG_LIBRARIES}  ${GLOG_LIB}  ${GLOG_LIBS} ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}
 )
 #############
