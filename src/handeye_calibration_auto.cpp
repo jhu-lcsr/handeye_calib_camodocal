@@ -447,7 +447,8 @@ int main(int argc, char** argv) {
     nh.param("output_launch_filename", output_launch_filename,
              std::string("/tmp/maker_to_ee_static_transform_publisher.launch"));
     nh.param(
-        "output_launch_filename", base_to_camera_output_launch_filename,
+        "base_to_camera_output_launch_filename",
+        base_to_camera_output_launch_filename,
         std::string("/tmp/base_to_camera_static_transform_publisher.launch"));
     nh.param("add_solver_summary", addSolverSummary, false);
     nh.param("transform_pairs_record_filename", transformPairsRecordFile,
