@@ -2,6 +2,7 @@
 #include "ceres/types.h"
 #include <camodocal/calib/HandEyeCalibration.h>
 #include <eigen3/Eigen/Geometry>
+#include <fstream>
 #include <opencv2/core/eigen.hpp>
 #include <ros/ros.h>
 #include <std_msgs/String.h>
@@ -435,12 +436,19 @@ int main(int argc, char** argv) {
     std::string calibratedTransformFile;
     bool loadTransformsFromFile = false;
     bool addSolverSummary = false;
+    std::string output_launch_filename;
+    std::string base_to_camera_output_launch_filename;
 
     // getting TF names
     nh.param("ARTagTF", ARTagTFname, std::string("/camera_2/ar_marker_0"));
     nh.param("cameraTF", cameraTFname, std::string("/camera_2_link"));
     nh.param("EETF", EETFname, std::string("/ee_fixed_link"));
     nh.param("baseTF", baseTFname, std::string("/base_link"));
+    nh.param("output_launch_filename", output_launch_filename,
+             std::string("/tmp/maker_to_ee_static_transform_publisher.launch"));
+    nh.param(
+        "output_launch_filename", base_to_camera_output_launch_filename,
+        std::string("/tmp/base_to_camera_static_transform_publisher.launch"));
     nh.param("add_solver_summary", addSolverSummary, false);
     nh.param("transform_pairs_record_filename", transformPairsRecordFile,
              std::string("TransformPairsInput.yml"));
@@ -509,6 +517,88 @@ int main(int argc, char** argv) {
                << quaternionResult.y() << " " << quaternionResult.z()
                << std::endl;
             std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
+
+            double x = resultAffine.translation().transpose()[0];
+            double y = resultAffine.translation().transpose()[1];
+            double z = resultAffine.translation().transpose()[2];
+            std::ofstream outputfile(output_launch_filename);
+            outputfile << "<launch>" << std::endl;
+            outputfile << "  <arg name=\"ee_frame\" default=\"" << EETFname
+                       << "\" />";
+            outputfile << "  <arg name=\"marker_frame\" default=\""
+                       << ARTagTFname << "\" />";
+            outputfile << "  <node name=\"endpoint_to_marker\"" << std::endl;
+            outputfile
+                << "        pkg=\"tf\" type=\"static_transform_publisher\""
+                << std::endl;
+            outputfile << "        args=\"";
+            outputfile << x << " " << y << " " << z << std::endl;
+            outputfile << "              " << quaternionResult.w() << " "
+                       << quaternionResult.x() << " " << quaternionResult.y()
+                       << " " << quaternionResult.z() << std::endl;
+            outputfile
+                << "              $(arg ee_frame) /endpoint_marker 1000/>"
+                << std::endl;
+            outputfile << "</launch>" << std::endl;
+            outputfile.close();
+
+            tf::StampedTransform EETransform;
+            tf::StampedTransform Camera2MarkerTransform;
+            Eigen::Affine3d eigenEE;
+            Eigen::Affine3d eigenCamera2Marker;
+            ros::Time now = ros::Time::now();
+            if (listener->waitForTransform(baseTFname, EETFname, now,
+                                           ros::Duration(1)) &&
+                listener->waitForTransform(ARTagTFname, cameraTFname, now,
+                                           ros::Duration(1))) {
+                listener->lookupTransform(baseTFname, EETFname, now,
+                                          EETransform);
+                listener->lookupTransform(ARTagTFname, cameraTFname, now,
+                                          Camera2MarkerTransform);
+                tf::transformTFToEigen(EETransform, eigenEE);
+                tf::transformTFToEigen(Camera2MarkerTransform,
+                                       eigenCamera2Marker);
+                Eigen::Affine3d BaseToCamera =
+                    (eigenEE * resultAffine * eigenCamera2Marker.inverse())
+                        .inverse();
+                Eigen::Transform<double, 3, Eigen::Affine> result_affine(
+                    BaseToCamera);
+                Eigen::Quaternion<double> quaternion_result(
+                    result_affine.rotation());
+                x = result_affine.translation().transpose()[0];
+                y = result_affine.translation().transpose()[1];
+                z = result_affine.translation().transpose()[2];
+                std::ofstream base_to_camera_outputfile(
+                    base_to_camera_output_launch_filename);
+                base_to_camera_outputfile << "<launch>" << std::endl;
+                base_to_camera_outputfile
+                    << "  <arg name=\"base_frame\" default=\"" << baseTFname
+                    << "\" />";
+                base_to_camera_outputfile
+                    << "  <arg name=\"camera_frame\" default=\"" << cameraTFname
+                    << "\" />";
+                base_to_camera_outputfile
+                    << "  <node "
+                       "name=\"base_to_camera_static_transform_publisher\""
+                    << std::endl;
+                base_to_camera_outputfile
+                    << "        pkg=\"tf\" type=\"static_transform_publisher\""
+                    << std::endl;
+                base_to_camera_outputfile << "        args=\"";
+                base_to_camera_outputfile << x << " " << y << " " << z
+                                          << std::endl;
+                base_to_camera_outputfile
+                    << "              " << quaternion_result.w() << " "
+                    << quaternion_result.x() << " " << quaternion_result.y()
+                    << " " << quaternion_result.z() << std::endl;
+                base_to_camera_outputfile << "              $(arg base_frame) "
+                                             "$(arg camera_frame) 1000/>"
+                                          << std::endl;
+                base_to_camera_outputfile << "</launch>" << std::endl;
+                base_to_camera_outputfile.close();
+            } else {
+                std::cerr << "Could not get TF" << std::endl;
+            }
 
             if (addSolverSummary) {
                 writeCalibration(resultAffine, calibratedTransformFile,
