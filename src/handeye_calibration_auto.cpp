@@ -350,7 +350,7 @@ void addFrame() {
     bool hasEE = true, hasCam = true;
 
     if (listener->waitForTransform(cameraTFname, ARTagTFname, now,
-                                   ros::Duration(1)))
+                                   ros::Duration(3.0)))
         listener->lookupTransform(cameraTFname, ARTagTFname, now, CamTransform);
     else {
         hasCam = false;
@@ -549,9 +549,9 @@ int main(int argc, char** argv) {
             Eigen::Affine3d eigenMarker2Camera;
             ros::Time now = ros::Time::now();
             if (listener->waitForTransform(baseTFname, EETFname, now,
-                                           ros::Duration(1)) &&
+                                           ros::Duration(3.0)) &&
                 listener->waitForTransform(ARTagTFname, cameraTFname, now,
-                                           ros::Duration(1))) {
+                                           ros::Duration(3.0))) {
                 listener->lookupTransform(baseTFname, EETFname, now,
                                           EETransform);
                 listener->lookupTransform(ARTagTFname, cameraTFname, now,
@@ -600,6 +600,9 @@ int main(int argc, char** argv) {
                 base_to_camera_outputfile.close();
             } else {
                 std::cerr << "Could not get TF" << std::endl;
+                ROS_WARN(
+                    "Fail to get TF, so base_to_camera transformation "
+                    "data not generated. Please check the camera position.");
             }
 
             if (addSolverSummary) {
