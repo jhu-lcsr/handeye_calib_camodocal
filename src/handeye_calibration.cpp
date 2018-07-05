@@ -2,6 +2,7 @@
 #include "ceres/types.h"
 #include <camodocal/calib/HandEyeCalibration.h>
 #include <eigen3/Eigen/Geometry>
+#include <fstream>
 #include <opencv2/core/eigen.hpp>
 #include <ros/ros.h>
 #include <termios.h>
@@ -429,6 +430,7 @@ int main(int argc, char** argv) {
     std::string calibratedTransformFile;
     bool loadTransformsFromFile = false;
     bool addSolverSummary = false;
+    std::string output_launch_filename;
 
     // getting TF names
     nh.param("ARTagTF", ARTagTFname, std::string("/camera_2/ar_marker_0"));
@@ -437,6 +439,8 @@ int main(int argc, char** argv) {
     nh.param("baseTF", baseTFname, std::string("/base_link"));
     nh.param("add_solver_summary", addSolverSummary, false);
     nh.param("load_transforms_from_file", loadTransformsFromFile, false);
+    nh.param("output_launch_filename", output_launch_filename,
+             std::string("/tmp/maker_to_ee_static_transform_publisher.launch"));
     nh.param("transform_pairs_record_filename", transformPairsRecordFile,
              std::string("TransformPairsInput.yml"));
     nh.param("transform_pairs_load_filename", transformPairsLoadFile,
@@ -454,6 +458,33 @@ int main(int argc, char** argv) {
         if (ret == 0) {
             auto result = estimateHandEye(t1, t2, calibratedTransformFile,
                                           addSolverSummary);
+
+            Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
+            Eigen::Quaternion<double> quaternionResult(resultAffine.rotation());
+            double x = resultAffine.translation().transpose()[0];
+            double y = resultAffine.translation().transpose()[1];
+            double z = resultAffine.translation().transpose()[2];
+
+            std::ofstream outputfile(output_launch_filename);
+            outputfile << "<launch>" << std::endl;
+            outputfile << "  <arg name=\"ee_frame\" default=\"" << EETFname
+                       << "\" />" << std::endl;
+            outputfile << "  <arg name=\"marker_frame\" default=\""
+                       << ARTagTFname << "\" />" << std::endl;
+            outputfile << "  <node name=\"endpoint_to_marker\"" << std::endl;
+            outputfile
+                << "        pkg=\"tf\" type=\"static_transform_publisher\""
+                << std::endl;
+            outputfile << "        args=\"";
+            outputfile << x << " " << y << " " << z << std::endl;
+            outputfile << "              " << quaternionResult.x() << " "
+                       << quaternionResult.y() << " " << quaternionResult.z()
+                       << " " << quaternionResult.w() << " " << std::endl;
+            outputfile
+                << "              $(arg ee_frame) /endpoint_marker 1000\" />"
+                << std::endl;
+            outputfile << "</launch>" << std::endl;
+            outputfile.close();
         }
         return 0;
     }
