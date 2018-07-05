@@ -450,10 +450,11 @@ int main(int argc, char** argv) {
         std::cerr << "Transform pairs loading file: " << transformPairsLoadFile
                   << "\n";
         EigenAffineVector t1, t2;
-        readTransformPairsFromFile(transformPairsLoadFile, t1, t2);
-        auto result =
-            estimateHandEye(t1, t2, calibratedTransformFile, addSolverSummary);
-
+        int ret = readTransformPairsFromFile(transformPairsLoadFile, t1, t2);
+        if (ret == 0) {
+            auto result = estimateHandEye(t1, t2, calibratedTransformFile,
+                                          addSolverSummary);
+        }
         return 0;
     }
 
