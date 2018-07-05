@@ -104,7 +104,7 @@ int readTransformPairsFromFile(std::string filename, EigenAffineVector& t1,
         }
         fs.release();
     } else {
-        std::cerr << "failed to open input file " << filename << "\n";
+        ROS_ERROR("failed to open input file %s", filename.c_str());
         return 1;
     }
     return 0;
