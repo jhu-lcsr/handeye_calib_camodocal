@@ -1,10 +1,12 @@
 #include "ceres/ceres.h"
 #include "ceres/types.h"
+#include "handeye_calib_camodocal/HandEyeCalibCommand.h"
 #include <camodocal/calib/HandEyeCalibration.h>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
 #include <opencv2/core/eigen.hpp>
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
 #include <termios.h>
 #include <tf/transform_listener.h>
@@ -26,6 +28,7 @@ Eigen::Affine3d firstEEInverse, firstCamInverse;
 bool firstTransform = true;
 eigenVector tvecsArm, rvecsArm, tvecsFiducial, rvecsFiducial;
 std::string key;
+std::string transformPairsRecordFile;
 
 EigenAffineVector baseToTip, cameraToTag;
 
@@ -428,16 +431,35 @@ void keyCallback(const std_msgs::String::ConstPtr& msg) {
     key = msg->data.c_str();
 }
 
+bool handeye_calib_command(
+    handeye_calib_camodocal::HandEyeCalibCommand::Request& req,
+    handeye_calib_camodocal::HandEyeCalibCommand::Response& res) {
+    int ret;
+    if (req.command.data == "s") {
+        addFrame();
+        ret = writeTransformPairsToFile(baseToTip, cameraToTag,
+                                        transformPairsRecordFile);
+        if (ret == 0) {
+            res.succeeded.data = true;
+        } else {
+            res.succeeded.data = false;
+        }
+    }
+    return true;
+}
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "handeye_calib_camodocal");
     ros::NodeHandle nh("~");
-    std::string transformPairsRecordFile;
     std::string transformPairsLoadFile;
     std::string calibratedTransformFile;
     bool loadTransformsFromFile = false;
     bool addSolverSummary = false;
     std::string output_launch_filename;
     std::string base_to_camera_output_launch_filename;
+
+    ros::ServiceServer service =
+        nh.advertiseService("handeye_calib", handeye_calib_command);
 
     // getting TF names
     nh.param("ARTagTF", ARTagTFname, std::string("/camera_2/ar_marker_0"));
