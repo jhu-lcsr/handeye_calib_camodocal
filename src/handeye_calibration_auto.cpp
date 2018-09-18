@@ -491,35 +491,89 @@ int main(int argc, char** argv) {
         EigenAffineVector t1, t2;
         int ret = readTransformPairsFromFile(transformPairsLoadFile, t1, t2);
         if (ret == 0) {
-            auto result = estimateHandEye(t1, t2, calibratedTransformFile,
-                                          addSolverSummary);
+            {
+                auto result = estimateHandEye(t1, t2, calibratedTransformFile,
+                                              addSolverSummary);
 
-            Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
-            Eigen::Quaternion<double> quaternionResult(resultAffine.rotation());
-            double x = resultAffine.translation().transpose()[0];
-            double y = resultAffine.translation().transpose()[1];
-            double z = resultAffine.translation().transpose()[2];
+                Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
+                Eigen::Quaternion<double> quaternionResult(
+                    resultAffine.rotation());
+                double x = resultAffine.translation().transpose()[0];
+                double y = resultAffine.translation().transpose()[1];
+                double z = resultAffine.translation().transpose()[2];
 
-            std::ofstream outputfile(output_launch_filename);
-            outputfile << "<launch>" << std::endl;
-            outputfile << "  <arg name=\"ee_frame\" default=\"" << EETFname
-                       << "\" />" << std::endl;
-            outputfile << "  <arg name=\"marker_frame\" default=\""
-                       << ARTagTFname << "\" />" << std::endl;
-            outputfile << "  <node name=\"endpoint_to_marker\"" << std::endl;
-            outputfile
-                << "        pkg=\"tf\" type=\"static_transform_publisher\""
-                << std::endl;
-            outputfile << "        args=\"";
-            outputfile << x << " " << y << " " << z << std::endl;
-            outputfile << "              " << quaternionResult.x() << " "
-                       << quaternionResult.y() << " " << quaternionResult.z()
-                       << " " << quaternionResult.w() << " " << std::endl;
-            outputfile
-                << "              $(arg ee_frame) $(arg marker_frame) 1000\" />"
-                << std::endl;
-            outputfile << "</launch>" << std::endl;
-            outputfile.close();
+                std::ofstream outputfile(output_launch_filename);
+                outputfile << "<launch>" << std::endl;
+                outputfile << "  <arg name=\"ee_frame\" default=\"" << EETFname
+                           << "\" />" << std::endl;
+                outputfile << "  <arg name=\"marker_frame\" default=\""
+                           << ARTagTFname << "\" />" << std::endl;
+                outputfile << "  <node name=\"endpoint_to_marker\""
+                           << std::endl;
+                outputfile
+                    << "        pkg=\"tf\" type=\"static_transform_publisher\""
+                    << std::endl;
+                outputfile << "        args=\"";
+                outputfile << x << " " << y << " " << z << std::endl;
+                outputfile << "              " << quaternionResult.x() << " "
+                           << quaternionResult.y() << " "
+                           << quaternionResult.z() << " "
+                           << quaternionResult.w() << " " << std::endl;
+                outputfile << "              $(arg ee_frame) $(arg "
+                              "marker_frame) 100\" />"
+                           << std::endl;
+                outputfile << "</launch>" << std::endl;
+                outputfile.close();
+            }
+            {
+                EigenAffineVector tag_to_cam;
+                tag_to_cam.resize(t2.size());
+                for (int tag_to_cam_index = 0;
+                     tag_to_cam_index < tag_to_cam.size(); ++tag_to_cam_index) {
+                    tag_to_cam[tag_to_cam_index] =
+                        t2[tag_to_cam_index].inverse();
+                }
+                EigenAffineVector ee_to_base;
+                ee_to_base.resize(t2.size());
+                for (int ee_to_base_index = 0;
+                     ee_to_base_index < ee_to_base.size(); ++ee_to_base_index) {
+                    ee_to_base[ee_to_base_index] =
+                        t1[ee_to_base_index].inverse();
+                }
+                auto result =
+                    estimateHandEye(ee_to_base, tag_to_cam,
+                                    calibratedTransformFile, addSolverSummary);
+
+                Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
+                Eigen::Quaternion<double> quaternionResult(
+                    resultAffine.rotation());
+                double x = resultAffine.translation().transpose()[0];
+                double y = resultAffine.translation().transpose()[1];
+                double z = resultAffine.translation().transpose()[2];
+
+                std::ofstream outputfile(base_to_camera_output_launch_filename);
+                outputfile << "<launch>" << std::endl;
+                outputfile << "  <arg name=\"base_frame\" default=\""
+                           << baseTFname << "\" />" << std::endl;
+                outputfile << "  <arg name=\"camera_frame\" default=\""
+                           << cameraTFname << "\" />" << std::endl;
+                outputfile << "  <node name=\"base_to_camera_frame_transform\""
+                           << std::endl;
+                outputfile
+                    << "        pkg=\"tf\" type=\"static_transform_publisher\""
+                    << std::endl;
+                outputfile << "        args=\"";
+                outputfile << x << " " << y << " " << z << std::endl;
+                outputfile << "              " << quaternionResult.x() << " "
+                           << quaternionResult.y() << " "
+                           << quaternionResult.z() << " "
+                           << quaternionResult.w() << " " << std::endl;
+                outputfile << "              $(arg base_frame) $(arg "
+                              "camera_frame) 100\" />"
+                           << std::endl;
+                outputfile << "</launch>" << std::endl;
+                outputfile.close();
+            }
         }
         return 0;
     }
