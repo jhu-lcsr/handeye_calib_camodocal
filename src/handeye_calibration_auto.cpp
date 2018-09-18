@@ -466,6 +466,7 @@ int main(int argc, char** argv) {
     nh.param("cameraTF", cameraTFname, std::string("/camera_2_link"));
     nh.param("EETF", EETFname, std::string("/ee_fixed_link"));
     nh.param("baseTF", baseTFname, std::string("/base_link"));
+    nh.param("load_transforms_from_file", loadTransformsFromFile, false);
     nh.param("output_launch_filename", output_launch_filename,
              std::string("/tmp/maker_to_ee_static_transform_publisher.launch"));
     nh.param(
@@ -483,6 +484,45 @@ int main(int argc, char** argv) {
     std::cerr << "Calibrated output file: " << calibratedTransformFile << "\n";
     std::cerr << "Transform pairs recording to file: "
               << transformPairsRecordFile << "\n";
+
+    if (loadTransformsFromFile) {
+        std::cerr << "Transform pairs loading file: " << transformPairsLoadFile
+                  << "\n";
+        EigenAffineVector t1, t2;
+        int ret = readTransformPairsFromFile(transformPairsLoadFile, t1, t2);
+        if (ret == 0) {
+            auto result = estimateHandEye(t1, t2, calibratedTransformFile,
+                                          addSolverSummary);
+
+            Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
+            Eigen::Quaternion<double> quaternionResult(resultAffine.rotation());
+            double x = resultAffine.translation().transpose()[0];
+            double y = resultAffine.translation().transpose()[1];
+            double z = resultAffine.translation().transpose()[2];
+
+            std::ofstream outputfile(output_launch_filename);
+            outputfile << "<launch>" << std::endl;
+            outputfile << "  <arg name=\"ee_frame\" default=\"" << EETFname
+                       << "\" />" << std::endl;
+            outputfile << "  <arg name=\"marker_frame\" default=\""
+                       << ARTagTFname << "\" />" << std::endl;
+            outputfile << "  <node name=\"endpoint_to_marker\"" << std::endl;
+            outputfile
+                << "        pkg=\"tf\" type=\"static_transform_publisher\""
+                << std::endl;
+            outputfile << "        args=\"";
+            outputfile << x << " " << y << " " << z << std::endl;
+            outputfile << "              " << quaternionResult.x() << " "
+                       << quaternionResult.y() << " " << quaternionResult.z()
+                       << " " << quaternionResult.w() << " " << std::endl;
+            outputfile
+                << "              $(arg ee_frame) $(arg marker_frame) 1000\" />"
+                << std::endl;
+            outputfile << "</launch>" << std::endl;
+            outputfile.close();
+        }
+        return 0;
+    }
 
     key = "";
     ros::Subscriber sub = nh.subscribe("/handeye_calib/key", 1, keyCallback);

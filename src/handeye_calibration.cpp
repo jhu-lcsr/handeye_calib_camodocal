@@ -481,7 +481,7 @@ int main(int argc, char** argv) {
                        << quaternionResult.y() << " " << quaternionResult.z()
                        << " " << quaternionResult.w() << " " << std::endl;
             outputfile
-                << "              $(arg ee_frame) /endpoint_marker 1000\" />"
+                << "              $(arg ee_frame) $(arg marker_frame) 1000\" />"
                 << std::endl;
             outputfile << "</launch>" << std::endl;
             outputfile.close();
