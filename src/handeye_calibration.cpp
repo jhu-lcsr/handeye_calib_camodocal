@@ -20,7 +20,7 @@ typedef std::vector<Eigen::Affine3d, Eigen::aligned_allocator<Eigen::Affine3d>>
 std::string ARTagTFname, cameraTFname;
 std::string EETFname, baseTFname;
 tf::TransformListener* listener;
-Eigen::Affine3d firstEEInverse, firstCamInverse;
+Eigen::Affine3d firstEE, firstCamInverse;
 bool firstTransform = true;
 eigenVector tvecsArm, rvecsArm, tvecsFiducial, rvecsFiducial;
 
@@ -116,7 +116,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
     auto t1_it = baseToTip.begin();
     auto t2_it = camToTag.begin();
 
-    Eigen::Affine3d firstEEInverse, firstCamInverse;
+    Eigen::Affine3d firstEE, firstCamInverse;
     eigenVector tvecsArm, rvecsArm, tvecsFiducial, rvecsFiducial;
 
     bool firstTransform = true;
@@ -125,14 +125,13 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
         auto& eigenEE = *t1_it;
         auto& eigenCam = *t2_it;
         if (firstTransform) {
-            firstEEInverse = eigenEE.inverse();
+            firstEE = eigenEE;
             firstCamInverse = eigenCam.inverse();
             ROS_INFO("Adding first transformation.");
             firstTransform = false;
         } else {
-            Eigen::Affine3d robotTipinFirstTipBase = firstEEInverse * eigenEE;
-            Eigen::Affine3d fiducialInFirstFiducialBase =
-                firstCamInverse * eigenCam;
+            Eigen::Affine3d robotTipinFirstTipBase = eigenEE.inverse() * firstEE;
+            Eigen::Affine3d fiducialInFirstFiducialBase = eigenCam * firstCamInverse;
 
             rvecsArm.push_back(eigenRotToEigenVector3dAngleAxis(
                 robotTipinFirstTipBase.rotation()));
@@ -142,11 +141,6 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
                 fiducialInFirstFiducialBase.rotation()));
             tvecsFiducial.push_back(fiducialInFirstFiducialBase.translation());
             ROS_INFO("Hand Eye Calibration Transform Pair Added");
-
-            Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3);
-            r_tmp[3] = 0;
-            Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3);
-            c_tmp[3] = 0;
 
             std::cerr
                 << "L2Norm EE: "
@@ -163,7 +157,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
     Eigen::Matrix4d result;
     calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial, tvecsFiducial,
                                result, false);
-    std::cerr << "Result from " << EETFname << " to " << ARTagTFname << ":\n"
+    std::cerr << "Result from " << EETFname << " to " << cameraTFname << ":\n"
               << result << std::endl;
     Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
     std::cerr << "Translation (x,y,z) : "
@@ -174,14 +168,14 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
        << quaternionResult.y() << ", " << quaternionResult.z() << std::endl;
     std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
 
-    std::cerr << "Result from " << ARTagTFname << " to " << EETFname << ":\n"
-              << result << std::endl;
+    std::cerr << "Result from " << cameraTFname << " to " << EETFname << ":\n"
+              << result.inverse() << std::endl;
     Eigen::Transform<double, 3, Eigen::Affine> resultAffineInv =
         resultAffine.inverse();
     std::cerr << "Inverted translation (x,y,z) : "
               << resultAffineInv.translation().transpose() << std::endl;
     quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
-    ss.clear();
+    ss.str("");
     ss << quaternionResult.w() << " " << quaternionResult.x() << " "
        << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
     std::cerr << "Inverted rotation (w,x,y,z): " << ss.str() << std::endl;
@@ -195,7 +189,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
     auto t1_it = baseToTip.begin();
     auto t2_it = camToTag.begin();
 
-    Eigen::Affine3d firstEEInverse, firstCamInverse;
+    Eigen::Affine3d firstEE, firstCamInverse;
     eigenVector tvecsArm, rvecsArm, tvecsFiducial, rvecsFiducial;
 
     bool firstTransform = true;
@@ -204,14 +198,13 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
         auto& eigenEE = *t1_it;
         auto& eigenCam = *t2_it;
         if (firstTransform) {
-            firstEEInverse = eigenEE.inverse();
+            firstEE = eigenEE;
             firstCamInverse = eigenCam.inverse();
             ROS_INFO("Adding first transformation.");
             firstTransform = false;
         } else {
-            Eigen::Affine3d robotTipinFirstTipBase = firstEEInverse * eigenEE;
-            Eigen::Affine3d fiducialInFirstFiducialBase =
-                firstCamInverse * eigenCam;
+            Eigen::Affine3d robotTipinFirstTipBase = eigenEE.inverse() * firstEE;
+            Eigen::Affine3d fiducialInFirstFiducialBase = eigenCam * firstCamInverse;
 
             rvecsArm.push_back(eigenRotToEigenVector3dAngleAxis(
                 robotTipinFirstTipBase.rotation()));
@@ -221,11 +214,6 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
                 fiducialInFirstFiducialBase.rotation()));
             tvecsFiducial.push_back(fiducialInFirstFiducialBase.translation());
             ROS_INFO("Hand Eye Calibration Transform Pair Added");
-
-            Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3);
-            r_tmp[3] = 0;
-            Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3);
-            c_tmp[3] = 0;
 
             std::cerr
                 << "L2Norm EE: "
@@ -242,7 +230,7 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
     Eigen::Matrix4d result;
     calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial, tvecsFiducial,
                                result, summary, false);
-    std::cerr << "Result from " << EETFname << " to " << ARTagTFname << ":\n"
+    std::cerr << "Result from " << EETFname << " to " << cameraTFname << ":\n"
               << result << std::endl;
     Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
     std::cerr << "Translation (x,y,z) : "
@@ -253,14 +241,14 @@ Eigen::Affine3d estimateHandEye(const EigenAffineVector& baseToTip,
        << quaternionResult.y() << ", " << quaternionResult.z() << std::endl;
     std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
 
-    std::cerr << "Result from " << ARTagTFname << " to " << EETFname << ":\n"
-              << result << std::endl;
+    std::cerr << "Result from " << cameraTFname << " to " << EETFname << ":\n"
+              << result.inverse() << std::endl;
     Eigen::Transform<double, 3, Eigen::Affine> resultAffineInv =
         resultAffine.inverse();
     std::cerr << "Inverted translation (x,y,z) : "
               << resultAffineInv.translation().transpose() << std::endl;
     quaternionResult = Eigen::Quaternion<double>(resultAffineInv.rotation());
-    ss.clear();
+    ss.str("");
     ss << quaternionResult.w() << " " << quaternionResult.x() << " "
        << quaternionResult.y() << " " << quaternionResult.z() << std::endl;
     std::cerr << "Inverted rotation (w,x,y,z): " << ss.str() << std::endl;
@@ -372,14 +360,13 @@ void addFrame() {
         cameraToTag.push_back(eigenCam);
 
         if (firstTransform) {
-            firstEEInverse = eigenEE.inverse();
+            firstEE = eigenEE;
             firstCamInverse = eigenCam.inverse();
             ROS_INFO("Adding first transformation.");
             firstTransform = false;
         } else {
-            Eigen::Affine3d robotTipinFirstTipBase = firstEEInverse * eigenEE;
-            Eigen::Affine3d fiducialInFirstFiducialBase =
-                firstCamInverse * eigenCam;
+            Eigen::Affine3d robotTipinFirstTipBase = eigenEE.inverse() * firstEE;
+            Eigen::Affine3d fiducialInFirstFiducialBase = eigenCam * firstCamInverse;
 
             rvecsArm.push_back(eigenRotToEigenVector3dAngleAxis(
                 robotTipinFirstTipBase.rotation()));
@@ -402,10 +389,6 @@ void addFrame() {
                       << EETransform.getRotation().getAxis().getY() << ", "
                       << EETransform.getRotation().getAxis().getZ() << ", "
                       << EETransform.getRotation().getW() << ")\n";
-            Eigen::Vector4d r_tmp = robotTipinFirstTipBase.matrix().col(3);
-            r_tmp[3] = 0;
-            Eigen::Vector4d c_tmp = fiducialInFirstFiducialBase.matrix().col(3);
-            c_tmp[3] = 0;
 
             std::cerr
                 << "L2Norm EE: "
@@ -508,7 +491,7 @@ int main(int argc, char** argv) {
 
             std::cerr << "Quaternion values are output in wxyz order\n";
 
-            std::cerr << "Calibration result (" << ARTagTFname << " pose in "
+            std::cerr << "Calibration result (" << cameraTFname << " pose in "
                       << EETFname << " frame): \n"
                       << result << std::endl;
             Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
@@ -531,12 +514,12 @@ int main(int argc, char** argv) {
             Eigen::Transform<double, 3, Eigen::Affine> resultAffineInv =
                 resultAffine.inverse();
             std::cerr << "Inverted Calibration result (" << EETFname
-                      << " pose in " << ARTagTFname << " frame): \n";
+                      << " pose in " << cameraTFname << " frame): \n";
             std::cerr << "Translation (x,y,z): "
                       << resultAffineInv.translation().transpose() << std::endl;
             quaternionResult =
                 Eigen::Quaternion<double>(resultAffineInv.rotation());
-            ss.clear();
+            ss.str("");
             ss << quaternionResult.w() << " " << quaternionResult.x() << " "
                << quaternionResult.y() << " " << quaternionResult.z()
                << std::endl;
