@@ -32,7 +32,7 @@
   <!-- tag the solver summary along the transform in the calibrated filename -->
   <arg name="add_solver_summary"     default="false" doc='Save a summary of the solver results in addition to the transforms in the calibrated output file. The summary includes the "ArmTipToMarkerTagTransform", "initial_cost", "final_cost, "change_cost", "termination_type", "num_successful_iteration", "num_unsuccessful_iteration", "num_iteration"'/>
 
-  <node pkg="handeye_calib_camodocal" type="handeye_calib_camodocal" name="handeye_calib_camodocal" output="screen">
+<node pkg="handeye_calib_camodocal" type="handeye_calib_camodocal" name="handeye_calib_camodocal" output="screen" required="True">
   <!-- handeye_calib_camodocal arg pass -->
     <param name="ARTagTF"       type="str" value="$(arg ARTagTF)" />
     <param name="cameraTF"      type="str" value="$(arg cameraTF)" />
