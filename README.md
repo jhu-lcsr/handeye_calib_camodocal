@@ -35,11 +35,12 @@ Feeding data into CamOdoCal
 
 ![Camodocal Hand Eye Calibration Details][5]
 
-  [1]: http://i.stack.imgur.com/7k4D3.jpg
-  [2]: http://i.stack.imgur.com/d4nVb.jpg
-  [3]: http://i.stack.imgur.com/wdOyg.jpg
-  [4]: http://i.stack.imgur.com/zRQ1i.jpg
-  [5]: http://i.stack.imgur.com/Cvc75.jpg
+  [1]: https://github.com/user-attachments/assets/02cac34b-3985-4fc7-a817-d459a37ee7f9
+  [2]: https://github.com/user-attachments/assets/57605a85-f34a-45e0-a915-ab09878e3c2e
+  [3]: https://github.com/user-attachments/assets/0e6bfdec-84be-4bdb-9300-ad9a6138500e
+  [4]: https://github.com/user-attachments/assets/0f2f52da-1bfb-4088-a2b6-4d7508523ae9
+  [5]: https://github.com/user-attachments/assets/1800f6a7-0d09-4bc4-9181-51414bba99e1
+
 
 
 When using this with a robot arm, move it around to a variety of poses and orientations, make sure any data sources that lag behind settle down, then record each pair of poses between the robot base and the robot tip, and between the eye/camera base and the marker, fiducial, or AR tag it is viewing.
