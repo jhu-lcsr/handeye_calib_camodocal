@@ -44,11 +44,13 @@
   <build_depend>roscpp</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>trajectory_msgs</build_depend>
+  <build_depend>tf_conversions</build_depend>
   <!--build_depend>vrep_common</build_depend -->
   <run_depend>eigen</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>trajectory_msgs</run_depend>
+  <run_depend>tf_conversions</run_depend>
   <!--run_depend>vrep_common</run_depend -->
 
 
