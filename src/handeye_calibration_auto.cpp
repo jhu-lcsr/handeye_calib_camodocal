@@ -1,10 +1,13 @@
 #include "ceres/ceres.h"
 #include "ceres/types.h"
+#include "handeye_calib_camodocal/HandEyeCalibCommand.h"
 #include <camodocal/calib/HandEyeCalibration.h>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
 #include <opencv2/core/eigen.hpp>
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
 #include <termios.h>
 #include <tf/transform_listener.h>
 #include <tf_conversions/tf_eigen.h>
@@ -24,6 +27,8 @@ tf::TransformListener* listener;
 Eigen::Affine3d firstEEInverse, firstCamInverse;
 bool firstTransform = true;
 eigenVector tvecsArm, rvecsArm, tvecsFiducial, rvecsFiducial;
+std::string key;
+std::string transformPairsRecordFile;
 
 EigenAffineVector baseToTip, cameraToTag;
 
@@ -105,7 +110,7 @@ int readTransformPairsFromFile(std::string filename, EigenAffineVector& t1,
         }
         fs.release();
     } else {
-        ROS_ERROR("failed to open input file %s", filename.c_str());
+        std::cerr << "failed to open input file " << filename << "\n";
         return 1;
     }
     return 0;
@@ -348,7 +353,7 @@ void addFrame() {
     bool hasEE = true, hasCam = true;
 
     if (listener->waitForTransform(cameraTFname, ARTagTFname, now,
-                                   ros::Duration(1)))
+                                   ros::Duration(3.0)))
         listener->lookupTransform(cameraTFname, ARTagTFname, now, CamTransform);
     else {
         hasCam = false;
@@ -422,40 +427,109 @@ void addFrame() {
     }
 }
 
+void keyCallback(const std_msgs::String::ConstPtr& msg) {
+    key = msg->data.c_str();
+}
+
+bool handeye_calib_command(
+    handeye_calib_camodocal::HandEyeCalibCommand::Request& req,
+    handeye_calib_camodocal::HandEyeCalibCommand::Response& res) {
+    int ret;
+    if (req.command.data == "s") {
+        addFrame();
+        ret = writeTransformPairsToFile(baseToTip, cameraToTag,
+                                        transformPairsRecordFile);
+        if (ret == 0) {
+            res.succeeded.data = true;
+        } else {
+            res.succeeded.data = false;
+        }
+    }
+    return true;
+}
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "handeye_calib_camodocal");
     ros::NodeHandle nh("~");
-    std::string transformPairsRecordFile;
     std::string transformPairsLoadFile;
     std::string calibratedTransformFile;
     bool loadTransformsFromFile = false;
     bool addSolverSummary = false;
     std::string output_launch_filename;
+    std::string base_to_camera_output_launch_filename;
+
+    ros::ServiceServer service =
+        nh.advertiseService("handeye_calib", handeye_calib_command);
 
     // getting TF names
     nh.param("ARTagTF", ARTagTFname, std::string("/camera_2/ar_marker_0"));
     nh.param("cameraTF", cameraTFname, std::string("/camera_2_link"));
     nh.param("EETF", EETFname, std::string("/ee_fixed_link"));
     nh.param("baseTF", baseTFname, std::string("/base_link"));
-    nh.param("add_solver_summary", addSolverSummary, false);
     nh.param("load_transforms_from_file", loadTransformsFromFile, false);
     nh.param("output_launch_filename", output_launch_filename,
              std::string("/tmp/maker_to_ee_static_transform_publisher.launch"));
+    nh.param(
+        "base_to_camera_output_launch_filename",
+        base_to_camera_output_launch_filename,
+        std::string("/tmp/base_to_camera_static_transform_publisher.launch"));
+    nh.param("add_solver_summary", addSolverSummary, false);
     nh.param("transform_pairs_record_filename", transformPairsRecordFile,
              std::string("TransformPairsInput.yml"));
-    nh.param("transform_pairs_load_filename", transformPairsLoadFile,
-             std::string("TransformPairsOutput.yml"));
     nh.param("output_calibrated_transform_filename", calibratedTransformFile,
              std::string("CalibratedTransform.yml"));
 
     std::cerr << "Calibrated output file: " << calibratedTransformFile << "\n";
+    std::cerr << "Transform pairs recording to file: "
+              << transformPairsRecordFile << "\n";
 
-    if (loadTransformsFromFile) {
-        std::cerr << "Transform pairs loading file: " << transformPairsLoadFile
-                  << "\n";
-        EigenAffineVector t1, t2;
-        int ret = readTransformPairsFromFile(transformPairsLoadFile, t1, t2);
-        if (ret == 0) {
+    if (loadTransformsFromFile == false) {
+        key = "";
+        ros::Subscriber sub =
+            nh.subscribe("/handeye_calib/key", 1, keyCallback);
+        ros::Rate r(10); // 10 hz
+        listener = new (tf::TransformListener);
+
+        ros::Duration(1.0).sleep(); // cache the TF transforms
+
+        while (ros::ok()) {
+            if ((key == "s") || (key == "S")) {
+                std::cerr << "Adding Transform #:" << rvecsArm.size() << "\n";
+                addFrame();
+                writeTransformPairsToFile(baseToTip, cameraToTag,
+                                          transformPairsRecordFile);
+            } else if ((key == "d") || (key == "D")) {
+                ROS_INFO("Deleted last frame transformation. Number of Current "
+                         "Transformations: %u",
+                         (unsigned int)rvecsArm.size());
+                rvecsArm.pop_back();
+                tvecsArm.pop_back();
+                rvecsFiducial.pop_back();
+                tvecsFiducial.pop_back();
+                baseToTip.pop_back();
+                cameraToTag.pop_back();
+            } else if ((key == "q") || (key == "Q")) {
+                break;
+            } else if (key.length() > 0) {
+                std::cerr << key << " received.\n";
+            }
+            key = "";
+            ros::spinOnce();
+            r.sleep();
+        }
+    }
+
+    if (rvecsArm.size() < 5) {
+        ROS_WARN("Number of calibration transform pairs < 5.");
+    }
+    ROS_INFO("Calculating Calibration...");
+
+    std::cerr << "Transform pairs loading file: " << transformPairsRecordFile
+              << "\n";
+    EigenAffineVector t1, t2;
+    int ret = readTransformPairsFromFile(transformPairsRecordFile, t1, t2);
+    if (ret == 0) {
+        {
             auto result = estimateHandEye(t1, t2, calibratedTransformFile,
                                           addSolverSummary);
 
@@ -480,105 +554,61 @@ int main(int argc, char** argv) {
             outputfile << "              " << quaternionResult.x() << " "
                        << quaternionResult.y() << " " << quaternionResult.z()
                        << " " << quaternionResult.w() << " " << std::endl;
-            outputfile
-                << "              $(arg ee_frame) $(arg marker_frame) 1000\" />"
-                << std::endl;
+            outputfile << "              $(arg ee_frame) $(arg "
+                          "marker_frame) 100\" />"
+                       << std::endl;
             outputfile << "</launch>" << std::endl;
             outputfile.close();
+            ROS_INFO("ee_frame to marker_frame transform saved %s",
+                     output_launch_filename);
         }
-        return 0;
-    }
-
-    std::cerr << "Transform pairs recording to file: "
-              << transformPairsRecordFile << "\n";
-
-    ros::Rate r(10); // 10 hz
-    listener = new (tf::TransformListener);
-
-    ros::Duration(1.0).sleep(); // cache the TF transforms
-    int key = 0;
-    ROS_INFO("Press s to add the current frame transformation to the cache.");
-    ROS_INFO("Press d to delete last frame transformation.");
-    ROS_INFO(
-        "Press q to calibrate frame transformation and exit the application.");
-
-    while (ros::ok()) {
-        key = getch();
-        if ((key == 's') || (key == 'S')) {
-            std::cerr << "Adding Transform #:" << rvecsArm.size() << "\n";
-            addFrame();
-            writeTransformPairsToFile(baseToTip, cameraToTag,
-                                      transformPairsRecordFile);
-        } else if ((key == 'd') || (key == 'D')) {
-            ROS_INFO("Deleted last frame transformation. Number of Current "
-                     "Transformations: %u",
-                     (unsigned int)rvecsArm.size());
-            rvecsArm.pop_back();
-            tvecsArm.pop_back();
-            rvecsFiducial.pop_back();
-            tvecsFiducial.pop_back();
-            baseToTip.pop_back();
-            cameraToTag.pop_back();
-        } else if ((key == 'q') || (key == 'Q')) {
-            if (rvecsArm.size() < 5) {
-                ROS_WARN("Number of calibration transform pairs < 5.");
-                ROS_INFO("Node Quit");
+        {
+            EigenAffineVector tag_to_cam;
+            tag_to_cam.resize(t2.size());
+            for (int tag_to_cam_index = 0; tag_to_cam_index < tag_to_cam.size();
+                 ++tag_to_cam_index) {
+                tag_to_cam[tag_to_cam_index] = t2[tag_to_cam_index].inverse();
             }
-            ROS_INFO("Calculating Calibration...");
-            camodocal::HandEyeCalibration calib;
-            Eigen::Matrix4d result;
-            ceres::Solver::Summary summary;
-
-            if (addSolverSummary) {
-                calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial,
-                                           tvecsFiducial, result, summary,
-                                           false);
-            } else {
-                calib.estimateHandEyeScrew(rvecsArm, tvecsArm, rvecsFiducial,
-                                           tvecsFiducial, result, false);
+            EigenAffineVector ee_to_base;
+            ee_to_base.resize(t2.size());
+            for (int ee_to_base_index = 0; ee_to_base_index < ee_to_base.size();
+                 ++ee_to_base_index) {
+                ee_to_base[ee_to_base_index] = t1[ee_to_base_index].inverse();
             }
+            auto result =
+                estimateHandEye(ee_to_base, tag_to_cam, calibratedTransformFile,
+                                addSolverSummary);
 
-            std::cerr << "Quaternion values are output in wxyz order\n";
-
-            std::cerr << "Calibration result (" << ARTagTFname << " pose in "
-                      << EETFname << " frame): \n"
-                      << result << std::endl;
             Eigen::Transform<double, 3, Eigen::Affine> resultAffine(result);
-            std::cerr << "Translation (x,y,z) : "
-                      << resultAffine.translation().transpose() << std::endl;
             Eigen::Quaternion<double> quaternionResult(resultAffine.rotation());
-            std::stringstream ss;
-            ss << quaternionResult.w() << " " << quaternionResult.x() << " "
-               << quaternionResult.y() << " " << quaternionResult.z()
-               << std::endl;
-            std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
+            double x = resultAffine.translation().transpose()[0];
+            double y = resultAffine.translation().transpose()[1];
+            double z = resultAffine.translation().transpose()[2];
 
-            if (addSolverSummary) {
-                writeCalibration(resultAffine, calibratedTransformFile,
-                                 summary);
-            } else {
-                writeCalibration(resultAffine, calibratedTransformFile);
-            }
-
-            Eigen::Transform<double, 3, Eigen::Affine> resultAffineInv =
-                resultAffine.inverse();
-            std::cerr << "Inverted Calibration result (" << EETFname
-                      << " pose in " << ARTagTFname << " frame): \n";
-            std::cerr << "Translation (x,y,z): "
-                      << resultAffineInv.translation().transpose() << std::endl;
-            quaternionResult =
-                Eigen::Quaternion<double>(resultAffineInv.rotation());
-            ss.clear();
-            ss << quaternionResult.w() << " " << quaternionResult.x() << " "
-               << quaternionResult.y() << " " << quaternionResult.z()
-               << std::endl;
-            std::cerr << "Rotation (w,x,y,z): " << ss.str() << std::endl;
-
-            break;
-        } else {
-            std::cerr << key << " pressed.\n";
+            std::ofstream outputfile(base_to_camera_output_launch_filename);
+            outputfile << "<launch>" << std::endl;
+            outputfile << "  <arg name=\"base_frame\" default=\"" << baseTFname
+                       << "\" />" << std::endl;
+            outputfile << "  <arg name=\"camera_frame\" default=\""
+                       << cameraTFname << "\" />" << std::endl;
+            outputfile << "  <node name=\"base_to_camera_frame_transform\""
+                       << std::endl;
+            outputfile
+                << "        pkg=\"tf\" type=\"static_transform_publisher\""
+                << std::endl;
+            outputfile << "        args=\"";
+            outputfile << x << " " << y << " " << z << std::endl;
+            outputfile << "              " << quaternionResult.x() << " "
+                       << quaternionResult.y() << " " << quaternionResult.z()
+                       << " " << quaternionResult.w() << " " << std::endl;
+            outputfile << "              $(arg base_frame) $(arg "
+                          "camera_frame) 100\" />"
+                       << std::endl;
+            outputfile << "</launch>" << std::endl;
+            outputfile.close();
+            ROS_INFO("base_frame to camera_frame transform saved %s",
+                     base_to_camera_output_launch_filename);
         }
-        r.sleep();
     }
 
     ros::shutdown();

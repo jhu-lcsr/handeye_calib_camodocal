@@ -40,15 +40,20 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>std_msgs</build_depend>
   <build_depend>eigen</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>trajectory_msgs</build_depend>
+  <build_depend>libceres-dev</build_depend>
+  <build_depend>message_generation</build_depend>
   <!--build_depend>vrep_common</build_depend -->
+  <run_depend>std_msgs</run_depend>
   <run_depend>eigen</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>trajectory_msgs</run_depend>
+  <run_depend>message_runtime</run_depend>
   <!--run_depend>vrep_common</run_depend -->
 
 

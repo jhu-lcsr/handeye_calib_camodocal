@@ -1,0 +1,3 @@
+std_msgs/String command
+---
+std_msgs/Bool succeeded
